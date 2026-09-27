@@ -464,6 +464,8 @@ public class OverlayService extends Service implements MediaBridge.Listener {
             order[count++] = MediaBridge.CAN_SEARCH;
             order[count++] = MediaBridge.CAN_URI;
         }
+        // Playing one song discards the queue, and the shuffle mode with it.
+        MediaBridge.get().snapshotModes();
         attemptPlay(song, mediaId, order, count, 0, before, token);
     }
 
@@ -508,6 +510,12 @@ public class OverlayService extends Service implements MediaBridge.Listener {
                 Toast.makeText(OverlayService.this,
                         getString(R.string.toast_play_ok, bridge.title()), Toast.LENGTH_SHORT).show();
                 Beep.onTrackChange(OverlayService.this);
+                // Once the new queue exists, put the shuffle / repeat mode back.
+                handler.postDelayed(() -> {
+                    if (token == playToken) {
+                        MediaBridge.get().restoreModes(OverlayService.this);
+                    }
+                }, 900L);
                 refreshAfterPlay(token, 4);
                 return;
             }

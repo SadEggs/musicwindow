@@ -19,6 +19,7 @@ import android.service.notification.NotificationListenerService;
 import android.text.TextUtils;
 
 import java.io.InputStream;
+import java.lang.reflect.Method;
 import java.util.List;
 
 /**
@@ -352,6 +353,129 @@ public class MediaBridge {
 
     public MediaController controller() {
         return controller;
+    }
+
+    // ----- shuffle / repeat preservation ---------------------------------------------
+    //
+    // Playing one specific song makes the player build a fresh queue, and the shuffle mode
+    // belongs to the queue it just discarded - which is why a song picked from the panel
+    // used to turn Poweramp's shuffle off.
+    //
+    // The shuffle / repeat accessors are reached reflectively. The platform jar this app
+    // compiles against does not publish them on PlaybackState (no SHUFFLE_MODE_* constants,
+    // no getShuffleMode()), so a direct call cannot even compile, while a current device
+    // does provide them on MediaController. When a device lacks them the calls are simply
+    // skipped and modeApi() reports that, which the status page shows.
+
+    public static final int MODE_UNKNOWN = -1;
+
+    // Values documented for the platform playback state; declared here because the compile
+    // SDK does not expose the constants.
+    public static final int SHUFFLE_OFF = 0;
+    public static final int SHUFFLE_ALL = 1;
+    public static final int SHUFFLE_GROUP = 2;
+    public static final int REPEAT_OFF = 0;
+    public static final int REPEAT_ONE = 1;
+    public static final int REPEAT_ALL = 2;
+    public static final int REPEAT_GROUP = 3;
+
+    private int savedShuffle = MODE_UNKNOWN;
+    private int savedRepeat = MODE_UNKNOWN;
+    private String modeApi = "unprobed";
+
+    /** Shuffle mode the player reports, or MODE_UNKNOWN. */
+    public int shuffleMode() {
+        return readMode("getShuffleMode");
+    }
+
+    /** Repeat mode the player reports, or MODE_UNKNOWN. */
+    public int repeatMode() {
+        return readMode("getRepeatMode");
+    }
+
+    /** Where the mode accessors were found: controller / state / none / no-session. */
+    public String modeApi() {
+        return modeApi;
+    }
+
+    /** Remember the modes before a point-song request. */
+    public void snapshotModes() {
+        savedShuffle = shuffleMode();
+        savedRepeat = repeatMode();
+    }
+
+    /** Put back whatever the player dropped while building the new queue. */
+    public void restoreModes(Context ctx) {
+        if (!Prefs.keepShuffle(ctx)) {
+            return;
+        }
+        MediaController c = controller;
+        if (c == null) {
+            return;
+        }
+        int nowShuffle = shuffleMode();
+        int nowRepeat = repeatMode();
+        boolean wantShuffle = savedShuffle != MODE_UNKNOWN && savedShuffle != nowShuffle;
+        boolean wantRepeat = savedRepeat != MODE_UNKNOWN && savedRepeat != nowRepeat;
+        if (!wantShuffle && !wantRepeat) {
+            return;
+        }
+        try {
+            MediaController.TransportControls tc = c.getTransportControls();
+            if (tc == null) {
+                return;
+            }
+            if (wantShuffle) {
+                callVoid(tc, "setShuffleMode", savedShuffle);
+            }
+            if (wantRepeat) {
+                callVoid(tc, "setRepeatMode", savedRepeat);
+            }
+        } catch (Throwable ignored) {
+            // Nothing to do if the transport controls are unavailable.
+        }
+    }
+
+    private int readMode(String method) {
+        MediaController c = controller;
+        if (c == null) {
+            modeApi = "no-session";
+            return MODE_UNKNOWN;
+        }
+        Integer onController = callInt(c, method);
+        if (onController != null) {
+            modeApi = "controller";
+            return onController;
+        }
+        PlaybackState st = c.getPlaybackState();
+        if (st != null) {
+            Integer onState = callInt(st, method);
+            if (onState != null) {
+                modeApi = "state";
+                return onState;
+            }
+        }
+        modeApi = "none";
+        return MODE_UNKNOWN;
+    }
+
+    private static Integer callInt(Object target, String method) {
+        try {
+            Method m = target.getClass().getMethod(method);
+            Object result = m.invoke(target);
+            return result instanceof Integer ? (Integer) result : null;
+        } catch (Throwable ignored) {
+            return null;
+        }
+    }
+
+    private static void callVoid(Object target, String method, int value) {
+        try {
+            Method m = target.getClass().getMethod(method, int.class);
+            m.invoke(target, value);
+        } catch (Throwable ignored) {
+            // A player or platform without this member simply keeps its own mode.
+        }
     }
 
     public String statusText() {
