@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">音乐悬浮条</string>
+
+    <string name="notif_channel">悬浮条运行状态</string>
+    <string name="notif_title">音乐悬浮条运行中</string>
+    <string name="notif_text">正在显示悬浮播放控制</string>
+
+    <string name="sec_perm">第一步：授权</string>
+    <string name="perm_overlay">悬浮窗权限（必须）</string>
+    <string name="perm_nls">通知使用权（必须，用于读取歌曲信息）</string>
+    <string name="perm_batt">忽略电池优化（建议）</string>
+    <string name="perm_notif">通知权限（可选，用于常驻通知）</string>
+    <string name="perm_ok">已授权</string>
+    <string name="perm_no">未授权 - 点击去授权</string>
+
+    <string name="sec_run">第二步：启动</string>
+    <string name="btn_start">启动悬浮条</string>
+    <string name="btn_stop">停止悬浮条</string>
+    <string name="status_running">状态：运行中</string>
+    <string name="status_stopped">状态：未运行</string>
+    <string name="status_player">当前播放器：%1$s</string>
+    <string name="status_player_none">当前播放器：无（没有检测到活动的媒体会话）</string>
+
+    <string name="sec_size">尺寸与位置</string>
+    <string name="set_thickness">短边宽度（厘米）</string>
+    <string name="set_length">长度占屏幕比例（%）</string>
+    <string name="set_edge">停靠边缘</string>
+    <string name="edge_top">顶部</string>
+    <string name="edge_bottom">底部</string>
+    <string name="set_margin">边缘间距（dp）</string>
+    <string name="set_reset_pos">清除拖动位置（恢复停靠）</string>
+    <string name="set_autostart">开机自动启动</string>
+    <string name="set_handle_cm">折叠把手尺寸（厘米）</string>
+    <string name="set_collapse_hint">提示：点条右端的箭头可折叠成小把手，点小把手可展开。</string>
+    <string name="toast_need_overlay">请先授予悬浮窗权限</string>
+    <string name="toast_need_nls">请先授予通知使用权</string>
+    <string name="btn_open_settings">打开系统设置页</string>
+    <string name="hint_drag">提示：在条上拖动可移动位置，单击文字区域可播放/暂停，拖动进度条可跳转。</string>
+
+    <string name="sec_look">外观与行为</string>
+    <string name="set_alpha_idle">静止时不透明度（%）</string>
+    <string name="set_alpha_active">触摸时不透明度（%）</string>
+    <string name="set_fade">静止淡出延迟（秒，0=不淡出）</string>
+    <string name="set_only_playing">仅在播放时显示</string>
+    <string name="set_show_artist">显示歌手名</string>
+    <string name="set_show_time">显示时间文字</string>
+    <string name="set_show_art">显示专辑封面</string>
+
+    <string name="sec_adv">高级</string>
+    <string name="sec_apply">应用</string>
+    <string name="btn_apply">应用修改</string>
+    <string name="hint_poweramp">注意：Poweramp 需要保持通知（媒体控制）开启，系统才会暴露媒体会话；若条上一直显示「请授予通知使用权」，请检查通知使用权是否被系统回收。</string>
+    <string name="set_pref_pkg">优先控制的播放器包名</string>
+    <string name="set_pref_pkg_hint">com.maxmpz.audioplayer</string>
+
+    <string name="bar_need_nls">请授予通知使用权</string>
+    <string name="bar_need_overlay">请授予悬浮窗权限</string>
+    <string name="bar_unknown_title">未知曲目</string>
+    <string name="bar_unknown_artist">—</string>
+
+    <string name="cd_prev">上一曲</string>
+    <string name="cd_play">播放</string>
+    <string name="cd_pause">暂停</string>
+    <string name="cd_next">下一曲</string>
+    <string name="cd_collapse">折叠</string>
+    <string name="cd_expand">展开</string>
+</resources>

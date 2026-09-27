@@ -1,0 +1,6 @@
+// Top-level build file. Only declares the plugin version here.
+// If your Android Studio is older than Ladybug (2024.2), lower this version,
+// e.g. 8.5.2 (needs JDK 17) or 8.1.4 (needs JDK 17).
+plugins {
+    id 'com.android.application' version '8.7.3' apply false
+}

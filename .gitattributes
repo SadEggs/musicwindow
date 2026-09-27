@@ -1,0 +1,5 @@
+# Keep line endings LF everywhere so the Linux CI build sees identical files.
+* text=auto eol=lf
+*.png binary
+*.jar binary
+*.apk binary

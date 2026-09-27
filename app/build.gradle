@@ -1,0 +1,47 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'com.musicbar.overlay'
+    compileSdk 35
+
+    defaultConfig {
+        applicationId 'com.musicbar.overlay'
+        minSdk 26
+        targetSdk 35
+        versionCode 1
+        versionName '1.0'
+    }
+
+    buildTypes {
+        debug {
+            // Sideload-friendly: debug builds are auto-signed with the debug keystore.
+        }
+        release {
+            minifyEnabled false
+            // Signed with the debug key so you can install it directly.
+            // Replace with your own keystore later if you want.
+            signingConfig signingConfigs.debug
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+        encoding 'UTF-8'
+    }
+
+    lint {
+        abortOnError false
+        checkReleaseBuilds false
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+}
+
+// No AndroidX, no third-party libraries: framework APIs only.
+dependencies {
+}
