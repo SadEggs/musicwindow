@@ -51,9 +51,47 @@ https://github.com/SadEggs/musicwindow/releases/download/v0.4/app-release.apk
 
 | 版本 | 内容 | 下载 |
 | --- | --- | --- |
-| v0.5-beta1 | 媒体库面板（点条右端的文件夹图标展开，从条的位置往下伸出，占屏高约 1/3；三列磁贴、先上下后左右；顶部有「上级目录」和关闭叉；点歌由播放器后台切歌，不切出游戏） | https://github.com/SadEggs/musicwindow/releases/download/v0.5-beta1/app-release.apk |
+| v0.6-beta1 | 面板长度与主界面完全一致；点歌改为多路尝试（先「按名称点播」，再「按文件」）；状态页新增点播能力诊断 | https://github.com/SadEggs/musicwindow/releases/download/v0.6-beta1/app-release.apk |
+| v0.5-beta1 | 媒体库面板（点条右端的文件夹图标展开，从条的位置往下伸出，占屏高约 1/3；三列磁贴、先上下后左右；顶部有「上级目录」和关闭叉） | https://github.com/SadEggs/musicwindow/releases/download/v0.5-beta1/app-release.apk |
 
 > 测试版需要额外授予「音乐和音频」权限，才能读取音乐文件夹。
+
+#### 关于「点歌」（在面板里点一首歌直接切过去）
+
+播放器对外部点歌的支持各不相同，所以 tap 一首歌时按下面的顺序尝试，每一步都会等
+约 1.8 秒确认歌曲真的换了，没换才试下一种：
+
+1. **按名称点播**（`playFromSearch`）—— 这是 Android Auto / 语音助手用的标准请求，多数播放器都实现了；
+2. **按文件点播**（`playFromUri`）—— 直接给出该文件的 MediaStore 地址。
+
+三种都试完还没换歌，才会提示「播放器没有响应点播请求」。全程**不会**把播放器切到前台，
+所以游戏不会被切出去。
+
+App 状态页底部会显示诊断信息：
+
+```
+点播支持: 按名称=是 按文件=否 按编号=否
+媒体浏览服务
+  com.maxmpz.audioplayer/com.maxmpz.audioplayer.MediaBrowserService
+```
+
+- **点播支持**读的是播放器自己声明的能力（MediaSession 的 transport actions）。三个都是「否」，
+  说明这个播放器根本不打算接受外部点歌，那就只能用上一曲/下一曲。
+- **媒体浏览服务**是设备上实现了 Android Auto 浏览接口的服务。如果有 Poweramp 的那一条，
+  下一版就能实现「按编号点播」（`playFromMediaId`），这是最精确的一种，而且能直接拿到播放器的曲库结构。
+
+### 签名与升级（重要）
+
+早期版本每次 CI 编译都用**当场新生成的 debug 密钥**签名（CI 每次都是全新机器），
+所以每个 APK 的签名都不一样，装新版本时安卓会报「签名不一致」，必须先卸载。
+
+现在改为**固定密钥**：工作流第一次运行时会生成一个密钥，以 base64 文本提交为
+`app/keystore.b64`，此后所有版本（稳定版和测试版）都用它签名。
+
+- ⚠️ **切换到这个机制时要再卸载重装一次**（因为之前的包是旧密钥签的），之后就再也不用卸载了。
+- 密钥口令写在 `app/build.gradle` 里，仓库是公开的，所以这个密钥等于公开的。这对自用 sideload
+  的悬浮窗足够（别人拿到密钥也只能签出一个「同名」APK，没法往这个仓库里发版），
+  如果哪天在意，可以改成用 GitHub Actions Secret 存密钥（需要给令牌加 Secrets 权限）。
 
 ### 改了代码之后怎么重新出 APK
 
