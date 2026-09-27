@@ -38,7 +38,7 @@
 
 打开 https://github.com/SadEggs/musicwindow/releases —— 直接下 `app-release.apk`。
 平板上用浏览器点这个链接也能直接下：
-https://github.com/SadEggs/musicwindow/releases/download/v1.0/app-release.apk
+https://github.com/SadEggs/musicwindow/releases/download/v0.1/app-release.apk
 
 **B. 从 Actions 构件下载**
 
