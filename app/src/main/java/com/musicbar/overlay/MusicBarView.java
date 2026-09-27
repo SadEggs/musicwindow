@@ -38,6 +38,8 @@ public class MusicBarView extends LinearLayout {
 
         void onPinToggle();
 
+        void onLibraryToggle();
+
         void onSeekTo(long positionMs);
 
         void onUserActivity();
@@ -169,9 +171,19 @@ public class MusicBarView extends LinearLayout {
         });
         row.addView(pinButton, buttonParams(false));
 
-        ImageButton collapseButton = makeButton(R.drawable.ic_collapse, R.string.cd_collapse);
-        collapseButton.setOnClickListener(v -> setCollapsed(true, true));
-        row.addView(collapseButton, buttonParams(false));
+        ImageButton libraryButton = makeButton(R.drawable.ic_folder, R.string.cd_library);
+        libraryButton.setOnClickListener(v -> {
+            if (cb != null) {
+                cb.onLibraryToggle();
+            }
+        });
+        // The old right-hand chevron turned into this library button; collapsing
+        // moved to a long press so the feature is not lost.
+        libraryButton.setOnLongClickListener(v -> {
+            setCollapsed(true, true);
+            return true;
+        });
+        row.addView(libraryButton, buttonParams(false));
 
         LinearLayout progressRow = new LinearLayout(ctx);
         progressRow.setOrientation(HORIZONTAL);

@@ -14,6 +14,22 @@
     <!-- Optional autostart after boot (toggle inside the app). -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
+    <!-- Media library browsing (the folder panel). Android 13+ uses the audio
+         scoped permission; older releases fall back to external storage. -->
+    <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
+    <uses-permission
+        android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32" />
+
+    <!-- Android 11+ hides other apps' services unless this exact intent is
+         declared. It is how the app discovers a player's media browser service,
+         which would allow playing a song by its library id. -->
+    <queries>
+        <intent>
+            <action android:name="android.media.browse.MediaBrowserService" />
+        </intent>
+    </queries>
+
     <application
         android:allowBackup="false"
         android:icon="@drawable/ic_app"

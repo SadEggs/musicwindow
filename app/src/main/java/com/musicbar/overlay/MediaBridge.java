@@ -482,6 +482,129 @@ public class MediaBridge {
         }
     }
 
+    /**
+     * Asks the player itself to start a specific file. Nothing is brought to the
+     * foreground, so a game keeps running while the track changes. Returns false
+     * when there is no session to ask; a player that ignores the command is
+     * detected by the caller comparing the title a moment later.
+     */
+    public boolean playUri(Uri uri) {
+        MediaController c = controller;
+        if (c == null || uri == null) {
+            return false;
+        }
+        try {
+            c.getTransportControls().playFromUri(uri, null);
+            return true;
+        } catch (Throwable t) {
+            return false;
+        }
+    }
+
+    // ----- what the current player accepts for "play this exact item" ------------
+
+    public static final int CAN_SEARCH = 1;
+    public static final int CAN_URI = 2;
+    public static final int CAN_MEDIA_ID = 4;
+
+    /**
+     * Reads the transport actions the session advertises. This is how we learn
+     * which kind of "play this song" request a player is willing to answer before
+     * bothering it - a player that advertises none will simply ignore us.
+     */
+    public int playFromSupport() {
+        MediaController c = controller;
+        if (c == null) {
+            return 0;
+        }
+        PlaybackState state = c.getPlaybackState();
+        if (state == null) {
+            return 0;
+        }
+        long actions = state.getActions();
+        int support = 0;
+        if ((actions & PlaybackState.ACTION_PLAY_FROM_SEARCH) != 0) {
+            support |= CAN_SEARCH;
+        }
+        if ((actions & PlaybackState.ACTION_PLAY_FROM_URI) != 0) {
+            support |= CAN_URI;
+        }
+        if ((actions & PlaybackState.ACTION_PLAY_FROM_MEDIA_ID) != 0) {
+            support |= CAN_MEDIA_ID;
+        }
+        return support;
+    }
+
+    /**
+     * "Play something matching this text." The standard request every player
+     * implements for Android Auto and voice assistants, and unlike the file URI
+     * route it is honoured by players that never look at MediaStore ids.
+     */
+    public boolean playFromSearch(String query) {
+        MediaController c = controller;
+        if (c == null || query == null || query.isEmpty()) {
+            return false;
+        }
+        try {
+            c.getTransportControls().playFromSearch(query, null);
+            return true;
+        } catch (Throwable t) {
+            return false;
+        }
+    }
+
+    /**
+     * Play by the id the player itself uses for the track, obtained from its own
+     * media browser service. Nothing has to be guessed from a file path or a
+     * title, which makes this the most reliable of the point-song requests.
+     */
+    public boolean playFromMediaId(String mediaId) {
+        MediaController c = controller;
+        if (c == null || mediaId == null || mediaId.isEmpty()) {
+            return false;
+        }
+        try {
+            c.getTransportControls().playFromMediaId(mediaId, null);
+            return true;
+        } catch (Throwable t) {
+            return false;
+        }
+    }
+
+    /**
+     * Resume playback. A paused player will sometimes load the requested track and
+     * then just sit there, so the caller nudges it once the track has changed.
+     */
+    public void play() {
+        MediaController c = controller;
+        if (c == null) {
+            return;
+        }
+        try {
+            c.getTransportControls().play();
+        } catch (Throwable ignored) {
+            // ignore
+        }
+    }
+
+    /**
+     * A value that changes as soon as a different track is loaded, so the caller
+     * can tell whether a play request was honoured or quietly ignored.
+     */
+    public String trackSignature() {
+        MediaController c = controller;
+        if (c == null) {
+            return "";
+        }
+        MediaMetadata md = c.getMetadata();
+        if (md == null) {
+            return "";
+        }
+        return md.getString(MediaMetadata.METADATA_KEY_TITLE)
+                + "|" + md.getString(MediaMetadata.METADATA_KEY_ARTIST)
+                + "|" + md.getLong(MediaMetadata.METADATA_KEY_DURATION);
+    }
+
     public void toggle() {
         MediaController c = controller;
         if (c == null) {

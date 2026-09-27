@@ -5,6 +5,7 @@ import android.app.Activity;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.content.pm.ResolveInfo;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -12,6 +13,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.os.PowerManager;
 import android.provider.Settings;
+import android.service.media.MediaBrowserService;
 import android.text.Editable;
 import android.text.InputType;
 import android.text.TextWatcher;
@@ -29,6 +31,8 @@ import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.util.List;
+
 /**
  * Permission wizard + settings page. Every change is applied to the running
  * overlay immediately.
@@ -36,6 +40,7 @@ import android.widget.Toast;
 public class MainActivity extends Activity {
 
     private static final int REQUEST_NOTIFICATIONS = 100;
+    private static final int REQUEST_LIBRARY = 101;
 
     private static boolean notificationAskDone;
 
@@ -46,6 +51,7 @@ public class MainActivity extends Activity {
     private TextView nlsRow;
     private TextView batteryRow;
     private TextView notificationRow;
+    private TextView libraryRow;
 
     private final Handler ui = new Handler(Looper.getMainLooper());
     private Runnable pendingApply;
@@ -76,6 +82,7 @@ public class MainActivity extends Activity {
         nlsRow = addPermRow(R.string.perm_nls, v -> requestNotificationAccess());
         batteryRow = addPermRow(R.string.perm_batt, v -> requestIgnoreBattery());
         notificationRow = addPermRow(R.string.perm_notif, v -> requestNotificationPermission());
+        libraryRow = addPermRow(R.string.perm_library, v -> requestLibraryPermission());
 
         // ---- start / stop -----------------------------------------------------
         addSection(R.string.sec_run);
@@ -94,6 +101,7 @@ public class MainActivity extends Activity {
             applyLive();
         });
         addNote(R.string.hint_drag);
+        addNote(R.string.hint_library);
         addNote(R.string.hint_poweramp);
 
         // ---- appearance -------------------------------------------------------
@@ -143,6 +151,7 @@ public class MainActivity extends Activity {
         setPermRow(nlsRow, R.string.perm_nls, nls);
         setPermRow(batteryRow, R.string.perm_batt, battery);
         setPermRow(notificationRow, R.string.perm_notif, notification);
+        setPermRow(libraryRow, R.string.perm_library, hasLibraryPermission());
 
         StringBuilder sb = new StringBuilder();
         sb.append(getString(OverlayService.running
@@ -153,8 +162,48 @@ public class MainActivity extends Activity {
             sb.append(pkg == null || pkg.isEmpty()
                     ? getString(R.string.status_player_none)
                     : getString(R.string.status_player, pkg));
+            // Diagnostics for "tap a song in the folder panel": which point-song
+            // requests the player says it answers, and whether the device offers a
+            // media browser service at all.
+            sb.append('\n').append(playSupportText());
+            sb.append('\n').append(browserServicesText());
         }
         statusView.setText(sb.toString());
+    }
+
+    private String yesNo(boolean value) {
+        return getString(value ? R.string.diag_yes : R.string.diag_no);
+    }
+
+    private String playSupportText() {
+        int support = MediaBridge.get().playFromSupport();
+        return getString(R.string.diag_playfrom)
+                + ": " + getString(R.string.diag_search)
+                + "=" + yesNo((support & MediaBridge.CAN_SEARCH) != 0)
+                + " " + getString(R.string.diag_uri)
+                + "=" + yesNo((support & MediaBridge.CAN_URI) != 0)
+                + " " + getString(R.string.diag_mediaid)
+                + "=" + yesNo((support & MediaBridge.CAN_MEDIA_ID) != 0);
+    }
+
+    private String browserServicesText() {
+        Intent intent = new Intent(MediaBrowserService.SERVICE_INTERFACE);
+        List<ResolveInfo> found = getPackageManager().queryIntentServices(intent, 0);
+        StringBuilder sb = new StringBuilder(getString(R.string.diag_browser_state));
+        sb.append(": ").append(PlayerBrowser.get(this).statusText(this));
+        sb.append('\n').append(getString(R.string.diag_browser));
+        if (found == null || found.isEmpty()) {
+            sb.append(": ").append(getString(R.string.diag_none));
+            return sb.toString();
+        }
+        for (ResolveInfo info : found) {
+            if (info.serviceInfo == null) {
+                continue;
+            }
+            sb.append("\n  ").append(info.serviceInfo.packageName)
+                    .append('/').append(info.serviceInfo.name);
+        }
+        return sb.toString();
     }
 
     private void setPermRow(TextView row, int labelRes, boolean granted) {
@@ -275,6 +324,24 @@ public class MainActivity extends Activity {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS},
                     REQUEST_NOTIFICATIONS);
+        }
+    }
+
+    private boolean hasLibraryPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            return checkSelfPermission(Manifest.permission.READ_MEDIA_AUDIO)
+                    == PackageManager.PERMISSION_GRANTED;
+        }
+        return checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE)
+                == PackageManager.PERMISSION_GRANTED;
+    }
+
+    private void requestLibraryPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            requestPermissions(new String[]{Manifest.permission.READ_MEDIA_AUDIO}, REQUEST_LIBRARY);
+        } else {
+            requestPermissions(new String[]{Manifest.permission.READ_EXTERNAL_STORAGE},
+                    REQUEST_LIBRARY);
         }
     }
 
