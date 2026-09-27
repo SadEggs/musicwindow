@@ -36,7 +36,7 @@
     <string name="toast_need_overlay">请先授予悬浮窗权限</string>
     <string name="toast_need_nls">请先授予通知使用权</string>
     <string name="btn_open_settings">打开系统设置页</string>
-    <string name="hint_drag">提示：在条上拖动可移动位置，单击文字区域可播放/暂停，拖动进度条可跳转。</string>
+    <string name="hint_drag">提示：左右滑动切歌（向左＝下一首，向右＝上一首）；单击播放/暂停；长按后拖动可移动位置；拖动细线可跳转进度。</string>
 
     <string name="sec_look">外观与行为</string>
     <string name="set_alpha_idle">静止时不透明度（%）</string>

@@ -7,6 +7,8 @@ import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Shader;
 import android.graphics.Typeface;
+import android.os.Handler;
+import android.os.Looper;
 import android.text.TextUtils;
 import android.view.Gravity;
 import android.view.MotionEvent;
@@ -61,10 +63,17 @@ public class MusicBarView extends LinearLayout {
     private final SeekBar seekBar;
     private final ImageButton playButton;
 
+    private static final long LONG_PRESS_MS = 320L;
+    private static final int SWIPE_MIN_DP = 56;
+
+    private final Handler ui = new Handler(Looper.getMainLooper());
+
     private boolean compact;
     private boolean collapsed;
     private boolean userSeeking;
     private boolean dragging;
+    private boolean longPressed;
+    private boolean swipeFired;
     private boolean lastPlaying;
     private float downRawX;
     private float downRawY;
@@ -355,6 +364,17 @@ public class MusicBarView extends LinearLayout {
                 }
             };
 
+    /**
+     * Holding still for a moment turns the gesture into "move the bar"; a quick
+     * horizontal swipe stays a track change, so the two never fight each other.
+     */
+    private final Runnable longPressRunnable = new Runnable() {
+        @Override
+        public void run() {
+            longPressed = true;
+        }
+    };
+
     private final OnTouchListener touchListener = new OnTouchListener() {
         @Override
         public boolean onTouch(View v, MotionEvent event) {
@@ -363,6 +383,9 @@ public class MusicBarView extends LinearLayout {
                     downRawX = event.getRawX();
                     downRawY = event.getRawY();
                     dragging = false;
+                    longPressed = false;
+                    swipeFired = false;
+                    ui.postDelayed(longPressRunnable, LONG_PRESS_MS);
                     if (cb != null) {
                         cb.onUserActivity();
                     }
@@ -370,32 +393,56 @@ public class MusicBarView extends LinearLayout {
                 case MotionEvent.ACTION_MOVE: {
                     float dx = event.getRawX() - downRawX;
                     float dy = event.getRawY() - downRawY;
-                    if (!dragging && Math.hypot(dx, dy) > slop) {
-                        dragging = true;
-                        if (cb != null) {
-                            cb.onDragStart();
+                    if (longPressed) {
+                        // Held long enough: this gesture moves the window.
+                        if (!dragging && Math.hypot(dx, dy) > slop) {
+                            dragging = true;
+                            if (cb != null) {
+                                cb.onDragStart();
+                            }
                         }
+                        if (dragging && cb != null) {
+                            cb.onDrag((int) dx, (int) dy);
+                        }
+                        return true;
                     }
-                    if (dragging && cb != null) {
-                        cb.onDrag((int) dx, (int) dy);
+                    if (Math.abs(dx) > slop * 2f && Math.abs(dx) > Math.abs(dy) * 1.5f) {
+                        // Clearly sideways: never let this become a window drag.
+                        ui.removeCallbacks(longPressRunnable);
+                        if (!swipeFired && Math.abs(dx) >= dp(SWIPE_MIN_DP)) {
+                            swipeFired = true;
+                            if (cb != null) {
+                                if (dx < 0f) {
+                                    cb.onNext();
+                                } else {
+                                    cb.onPrev();
+                                }
+                            }
+                        }
                     }
                     return true;
                 }
                 case MotionEvent.ACTION_UP:
+                    ui.removeCallbacks(longPressRunnable);
                     if (dragging) {
                         if (cb != null) {
                             cb.onDragEnd();
                         }
-                    } else {
+                    } else if (!swipeFired) {
                         handleTap(v);
                     }
                     dragging = false;
+                    longPressed = false;
+                    swipeFired = false;
                     return true;
                 case MotionEvent.ACTION_CANCEL:
+                    ui.removeCallbacks(longPressRunnable);
                     if (dragging && cb != null) {
                         cb.onDragEnd();
                     }
                     dragging = false;
+                    longPressed = false;
+                    swipeFired = false;
                     return true;
                 default:
                     return false;

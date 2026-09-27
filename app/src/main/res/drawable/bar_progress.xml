@@ -1,16 +1,27 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  A hairline track with no loud colour block.
+  The played part is only slightly brighter than the rest, and the moving dot
+  (thumb_bar.xml) marks the current position, roughly like:
+
+      12:34  . . . . . . o . . . . . .  45:07
+-->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <item android:id="@android:id/background">
+    <item
+        android:id="@android:id/background"
+        android:gravity="center_vertical">
         <shape android:shape="rectangle">
-            <corners android:radius="4dp" />
-            <solid android:color="#33FFFFFF" />
+            <size android:height="2dp" />
+            <solid android:color="#3DFFFFFF" />
         </shape>
     </item>
-    <item android:id="@android:id/progress">
+    <item
+        android:id="@android:id/progress"
+        android:gravity="center_vertical">
         <clip>
             <shape android:shape="rectangle">
-                <corners android:radius="4dp" />
-                <solid android:color="#FF4FC3F7" />
+                <size android:height="2dp" />
+                <solid android:color="#8CFFFFFF" />
             </shape>
         </clip>
     </item>

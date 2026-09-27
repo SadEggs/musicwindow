@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- The single dot that rides along the hairline track. -->
 <shape xmlns:android="http://schemas.android.com/apk/res/android"
     android:shape="oval">
     <solid android:color="#FFECEFF1" />
     <size
-        android:width="14dp"
-        android:height="14dp" />
+        android:width="10dp"
+        android:height="10dp" />
 </shape>
