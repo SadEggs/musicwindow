@@ -67,6 +67,15 @@
     <string name="lib_root">内部存储</string>
     <string name="lib_empty">还没有读取到音乐，请先授予「音乐和音频」权限</string>
     <string name="lib_no_song">这个文件夹里没有音乐</string>
+    <string name="toast_play_ok">已切歌：%1$s</string>
+    <string name="diag_playfrom">点播支持</string>
+    <string name="diag_search">按名称</string>
+    <string name="diag_uri">按文件</string>
+    <string name="diag_mediaid">按编号</string>
+    <string name="diag_browser">媒体浏览服务</string>
+    <string name="diag_none">未发现</string>
+    <string name="diag_yes">是</string>
+    <string name="diag_no">否</string>
     <string name="perm_library">音乐库读取权限（浏览文件夹用）</string>
     <string name="toast_play_request">已请求播放：%1$s</string>
     <string name="toast_play_no_session">没有可用的播放会话，请先在播放器里播放一次</string>

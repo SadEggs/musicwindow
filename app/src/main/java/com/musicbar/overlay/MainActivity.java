@@ -5,6 +5,8 @@ import android.app.Activity;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.content.pm.ResolveInfo;
+import android.media.browse.MediaBrowserService;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -28,6 +30,8 @@ import android.widget.ScrollView;
 import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import java.util.List;
 
 /**
  * Permission wizard + settings page. Every change is applied to the running
@@ -158,8 +162,46 @@ public class MainActivity extends Activity {
             sb.append(pkg == null || pkg.isEmpty()
                     ? getString(R.string.status_player_none)
                     : getString(R.string.status_player, pkg));
+            // Diagnostics for "tap a song in the folder panel": which point-song
+            // requests the player says it answers, and whether the device offers a
+            // media browser service at all.
+            sb.append('\n').append(playSupportText());
+            sb.append('\n').append(browserServicesText());
         }
         statusView.setText(sb.toString());
+    }
+
+    private String yesNo(boolean value) {
+        return getString(value ? R.string.diag_yes : R.string.diag_no);
+    }
+
+    private String playSupportText() {
+        int support = MediaBridge.get().playFromSupport();
+        return getString(R.string.diag_playfrom)
+                + ": " + getString(R.string.diag_search)
+                + "=" + yesNo((support & MediaBridge.CAN_SEARCH) != 0)
+                + " " + getString(R.string.diag_uri)
+                + "=" + yesNo((support & MediaBridge.CAN_URI) != 0)
+                + " " + getString(R.string.diag_mediaid)
+                + "=" + yesNo((support & MediaBridge.CAN_MEDIA_ID) != 0);
+    }
+
+    private String browserServicesText() {
+        Intent intent = new Intent(MediaBrowserService.SERVICE_INTERFACE);
+        List<ResolveInfo> found = getPackageManager().queryIntentServices(intent, 0);
+        StringBuilder sb = new StringBuilder(getString(R.string.diag_browser));
+        if (found == null || found.isEmpty()) {
+            sb.append(": ").append(getString(R.string.diag_none));
+            return sb.toString();
+        }
+        for (ResolveInfo info : found) {
+            if (info.serviceInfo == null) {
+                continue;
+            }
+            sb.append("\n  ").append(info.serviceInfo.packageName)
+                    .append('/').append(info.serviceInfo.name);
+        }
+        return sb.toString();
     }
 
     private void setPermRow(TextView row, int labelRes, boolean granted) {

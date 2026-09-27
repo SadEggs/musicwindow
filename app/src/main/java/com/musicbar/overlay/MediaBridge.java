@@ -501,6 +501,58 @@ public class MediaBridge {
         }
     }
 
+    // ----- what the current player accepts for "play this exact item" ------------
+
+    public static final int CAN_SEARCH = 1;
+    public static final int CAN_URI = 2;
+    public static final int CAN_MEDIA_ID = 4;
+
+    /**
+     * Reads the transport actions the session advertises. This is how we learn
+     * which kind of "play this song" request a player is willing to answer before
+     * bothering it - a player that advertises none will simply ignore us.
+     */
+    public int playFromSupport() {
+        MediaController c = controller;
+        if (c == null) {
+            return 0;
+        }
+        PlaybackState state = c.getPlaybackState();
+        if (state == null) {
+            return 0;
+        }
+        long actions = state.getActions();
+        int support = 0;
+        if ((actions & PlaybackState.ACTION_PLAY_FROM_SEARCH) != 0) {
+            support |= CAN_SEARCH;
+        }
+        if ((actions & PlaybackState.ACTION_PLAY_FROM_URI) != 0) {
+            support |= CAN_URI;
+        }
+        if ((actions & PlaybackState.ACTION_PLAY_FROM_MEDIA_ID) != 0) {
+            support |= CAN_MEDIA_ID;
+        }
+        return support;
+    }
+
+    /**
+     * "Play something matching this text." The standard request every player
+     * implements for Android Auto and voice assistants, and unlike the file URI
+     * route it is honoured by players that never look at MediaStore ids.
+     */
+    public boolean playFromSearch(String query) {
+        MediaController c = controller;
+        if (c == null || query == null || query.isEmpty()) {
+            return false;
+        }
+        try {
+            c.getTransportControls().playFromSearch(query, null);
+            return true;
+        } catch (Throwable t) {
+            return false;
+        }
+    }
+
     public void toggle() {
         MediaController c = controller;
         if (c == null) {

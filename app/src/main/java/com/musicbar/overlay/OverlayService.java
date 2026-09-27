@@ -317,7 +317,9 @@ public class OverlayService extends Service implements MediaBridge.Listener {
         int screenWidth = metrics.widthPixels;
         int screenHeight = metrics.heightPixels;
 
-        int panelWidth = Math.max(Prefs.dp(this, 480), screenWidth * 60 / 100);
+        // Exactly the bar's own length, so the panel lines up with the bar above it.
+        int lengthPct = clamp(Prefs.lengthPct(this), 20, 100);
+        int panelWidth = Math.max(Prefs.dp(this, 160), screenWidth * lengthPct / 100);
         int panelHeight = Math.max(Prefs.dp(this, 300), screenHeight / 3);
 
         int barWidth = params.width;
@@ -397,33 +399,62 @@ public class OverlayService extends Service implements MediaBridge.Listener {
     }
 
     /**
-     * Ask the running player to play this file. The player stays in the
-     * background, so a game is not interrupted; if it ignores the request we say
-     * so instead of silently pulling another app to the front.
+     * Ask the running player to switch to this file, without pulling it to the
+     * front so the game stays on screen.
+     *
+     * Players differ in what they accept, so this walks a small ladder of
+     * requests - the standard search request first (the one players answer for
+     * Android Auto and Assistant), then the file URI - and only reports failure
+     * after every option has been tried and the track really did not change.
      */
     private void playFromLibrary(MediaLibrary.Song song) {
         MediaBridge bridge = MediaBridge.get();
-        final String before = bridge.title();
-
         if (!bridge.hasSession()) {
             Toast.makeText(this, R.string.toast_play_no_session, Toast.LENGTH_LONG).show();
             return;
         }
-        if (!bridge.playUri(song.uri())) {
-            Toast.makeText(this, R.string.toast_play_no_session, Toast.LENGTH_LONG).show();
+
+        int support = bridge.playFromSupport();
+        int[] order = new int[2];
+        int count = 0;
+        if ((support & MediaBridge.CAN_SEARCH) != 0) {
+            order[count++] = MediaBridge.CAN_SEARCH;
+        }
+        if ((support & MediaBridge.CAN_URI) != 0) {
+            order[count++] = MediaBridge.CAN_URI;
+        }
+        if (count == 0) {
+            // The session advertises nothing: try both anyway, cheapest first.
+            order[count++] = MediaBridge.CAN_SEARCH;
+            order[count++] = MediaBridge.CAN_URI;
+        }
+        tryPlay(song, order, count, 0, bridge.title());
+    }
+
+    private void tryPlay(MediaLibrary.Song song, final int[] order, final int count,
+                         final int index, final String before) {
+        if (index >= count) {
+            Toast.makeText(this, R.string.toast_play_unsupported, Toast.LENGTH_LONG).show();
             return;
         }
-
-        Toast.makeText(this, getString(R.string.toast_play_request, song.title),
-                Toast.LENGTH_SHORT).show();
-
+        MediaBridge bridge = MediaBridge.get();
+        boolean sent = order[index] == MediaBridge.CAN_SEARCH
+                ? bridge.playFromSearch(song.title)
+                : bridge.playUri(song.uri());
+        if (!sent) {
+            tryPlay(song, order, count, index + 1, before);
+            return;
+        }
+        final int next = index + 1;
         handler.postDelayed(() -> {
             String after = MediaBridge.get().title();
-            if (after != null && after.equals(before)) {
+            if (after != null && !after.equals(before)) {
                 Toast.makeText(OverlayService.this,
-                        R.string.toast_play_unsupported, Toast.LENGTH_LONG).show();
+                        getString(R.string.toast_play_ok, after), Toast.LENGTH_SHORT).show();
+            } else {
+                tryPlay(song, order, count, next, before);
             }
-        }, 2200L);
+        }, 1800L);
     }
 
     private void applyLayout() {
