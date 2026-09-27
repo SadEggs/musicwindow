@@ -1,5 +1,6 @@
 package com.musicbar.overlay;
 
+import android.app.Notification;
 import android.content.ComponentName;
 import android.content.Context;
 import android.graphics.Bitmap;
@@ -11,6 +12,7 @@ import android.media.session.MediaSession;
 import android.media.session.MediaSessionManager;
 import android.media.session.PlaybackState;
 import android.net.Uri;
+import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.SystemClock;
@@ -21,6 +23,7 @@ import android.text.TextUtils;
 import java.io.InputStream;
 import java.lang.reflect.Method;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * Reads the currently active media session (Poweramp) and exposes a tiny,
@@ -476,6 +479,220 @@ public class MediaBridge {
         } catch (Throwable ignored) {
             // A player or platform without this member simply keeps its own mode.
         }
+    }
+
+    private PlaybackState rawState() {
+        MediaController c = controller;
+        return c == null ? null : c.getPlaybackState();
+    }
+
+    // ----- reaching the player's shuffle switch --------------------------------------
+    //
+    // On this platform the media session publishes no shuffle or repeat accessor at all
+    // (checked at runtime, and reported as modeApi=none on the status page), so the mode
+    // cannot be read or written through MediaController. A player that offers shuffle in
+    // its own notification still exposes it as a notification button, and this app holds
+    // notification access - so the button can be observed and pressed.
+    //
+    // Pressing a toggle blindly would be wrong, because nothing says which way it goes.
+    // The button's icon is compared before and after a point-song instead: if the icon
+    // changed, the player flipped the mode itself and one press puts it back; if the icon
+    // is unchanged, nothing is pressed at all.
+
+    /** Signature of the player's shuffle button, or null when there is none to watch. */
+    public String shuffleButtonSignature() {
+        try {
+            Notification n = mediaNotification();
+            if (n == null || n.actions == null) {
+                return null;
+            }
+            for (Notification.Action a : n.actions) {
+                if (a.title == null) {
+                    continue;
+                }
+                if (matchesAny(a.title.toString(), SHUFFLE_WORDS)) {
+                    return a.title + "#" + iconSignature(a.getIcon());
+                }
+            }
+        } catch (Throwable ignored) {
+            // Notification access can be gone; there is then nothing to watch.
+        }
+        return null;
+    }
+
+    /**
+     * A fingerprint of a notification icon: the action icons of a media notification are
+     * the only place a player's shuffle state is visible at all, and they change when the
+     * state does. Built from the bitmap so it needs no resource API.
+     */
+    private static String iconSignature(android.graphics.drawable.Icon icon) {
+        if (icon == null) {
+            return "null";
+        }
+        try {
+            StringBuilder sb = new StringBuilder("t").append(icon.getType());
+            Bitmap bmp = icon.getBitmap();
+            if (bmp == null) {
+                return sb.append(":nobitmap").toString();
+            }
+            sb.append(':').append(bmp.getWidth()).append('x').append(bmp.getHeight());
+            int step = Math.max(1, bmp.getWidth() / 8);
+            for (int x = 0; x < bmp.getWidth(); x += step) {
+                sb.append(':').append(Integer.toHexString(bmp.getPixel(x, bmp.getHeight() / 2)));
+            }
+            return sb.toString();
+        } catch (Throwable t) {
+            return "error";
+        }
+    }
+
+    /** Titles of the player's notification buttons, for the status page. */
+    public String notificationActionsText() {
+        try {
+            Notification n = mediaNotification();
+            if (n == null) {
+                return "no-notification";
+            }
+            if (n.actions == null || n.actions.length == 0) {
+                return "none";
+            }
+            StringBuilder sb = new StringBuilder();
+            for (Notification.Action a : n.actions) {
+                if (sb.length() > 0) {
+                    sb.append('|');
+                }
+                sb.append(a.title == null ? "?" : a.title);
+            }
+            return sb.toString();
+        } catch (Throwable t) {
+            return "error";
+        }
+    }
+
+    /** Custom actions the session publishes, for the status page. */
+    public String customActionsText() {
+        try {
+            PlaybackState st = rawState();
+            if (st == null) {
+                return "no-state";
+            }
+            List<PlaybackState.CustomAction> actions = st.getCustomActions();
+            if (actions == null || actions.isEmpty()) {
+                return "none";
+            }
+            StringBuilder sb = new StringBuilder();
+            for (PlaybackState.CustomAction a : actions) {
+                if (sb.length() > 0) {
+                    sb.append('|');
+                }
+                sb.append(a.getAction());
+            }
+            return sb.toString();
+        } catch (Throwable t) {
+            return "error";
+        }
+    }
+
+    /** Whether the platform's transport controls advertise a shuffle setter here. */
+    public boolean canSetShuffle() {
+        try {
+            MediaController.TransportControls.class.getMethod("setShuffleMode", int.class);
+            return true;
+        } catch (Throwable ignored) {
+            return false;
+        }
+    }
+
+    private Notification mediaNotification() {
+        MediaListenerService service = MediaListenerService.get();
+        return service == null ? null : service.findNotification(packageName());
+    }
+
+    /** One press of the player's own shuffle button. */
+    public boolean pressShuffleButton() {
+        try {
+            Notification n = mediaNotification();
+            if (n == null || n.actions == null) {
+                return false;
+            }
+            for (Notification.Action a : n.actions) {
+                if (a.title == null || a.actionIntent == null) {
+                    continue;
+                }
+                if (matchesAny(a.title.toString(), SHUFFLE_WORDS)) {
+                    a.actionIntent.send();
+                    return true;
+                }
+            }
+        } catch (Throwable ignored) {
+            // Nothing to press.
+        }
+        return false;
+    }
+
+    /** Ask the session itself, for a player that honours the standard transport command. */
+    public boolean setShuffleMode(int mode) {
+        try {
+            MediaController c = controller;
+            if (c == null) {
+                return false;
+            }
+            MediaController.TransportControls tc = c.getTransportControls();
+            if (tc == null) {
+                return false;
+            }
+            Method m = tc.getClass().getMethod("setShuffleMode", int.class);
+            m.invoke(tc, mode);
+            return true;
+        } catch (Throwable ignored) {
+            return false;
+        }
+    }
+
+    /** Send the session's own shuffle custom action, if it publishes one. */
+    public boolean sendShuffleCustomAction() {
+        try {
+            MediaController c = controller;
+            PlaybackState st = rawState();
+            if (c == null || st == null) {
+                return false;
+            }
+            List<PlaybackState.CustomAction> actions = st.getCustomActions();
+            if (actions == null) {
+                return false;
+            }
+            for (PlaybackState.CustomAction a : actions) {
+                String name = a.getAction();
+                if (matchesAny(name, SHUFFLE_WORDS)) {
+                    c.getTransportControls().sendCustomAction(a, (Bundle) null);
+                    return true;
+                }
+            }
+        } catch (Throwable ignored) {
+            // Nothing to send.
+        }
+        return false;
+    }
+
+    /**
+     * Shuffle, random, and the two Chinese spellings of "random", written as escapes so
+     * that this source file stays pure ASCII and cannot be broken by a build machine that
+     * guesses the wrong source encoding.
+     */
+    private static final String[] SHUFFLE_WORDS = {
+            "shuffle", "random", "\u968F\u673A", "\u96A8\u6A5F"};
+
+    private static boolean matchesAny(String text, String... needles) {
+        if (text == null) {
+            return false;
+        }
+        String lower = text.toLowerCase(Locale.ROOT);
+        for (String needle : needles) {
+            if (lower.contains(needle.toLowerCase(Locale.ROOT))) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public String statusText() {

@@ -41,6 +41,7 @@ public class OverlayService extends Service implements MediaBridge.Listener {
     private FolderPanelView panel;
     private boolean panelAdded;
     private int playToken;
+    private String shuffleWatch;
     private long hideSince;
     private long lastActivity;
     private int dragBaseX;
@@ -466,6 +467,9 @@ public class OverlayService extends Service implements MediaBridge.Listener {
         }
         // Playing one song discards the queue, and the shuffle mode with it.
         MediaBridge.get().snapshotModes();
+        // Remember what the player's own shuffle button looks like right now: the mode is
+        // not readable through the media session on this platform, but the button shows it.
+        shuffleWatch = MediaBridge.get().shuffleButtonSignature();
         attemptPlay(song, mediaId, order, count, 0, before, token);
     }
 
@@ -479,7 +483,13 @@ public class OverlayService extends Service implements MediaBridge.Listener {
             return;
         }
         MediaBridge bridge = MediaBridge.get();
+        int route = Prefs.playRoute(this);
         int mode = order[index];
+        if (route != Prefs.ROUTE_AUTO && route != routeOf(mode)) {
+            // This route was switched off on the settings page.
+            attemptPlay(song, mediaId, order, count, index + 1, before, token);
+            return;
+        }
         boolean sent;
         if (mode == MediaBridge.CAN_MEDIA_ID) {
             sent = bridge.playFromMediaId(mediaId);
@@ -513,9 +523,9 @@ public class OverlayService extends Service implements MediaBridge.Listener {
                 // Once the new queue exists, put the shuffle / repeat mode back.
                 handler.postDelayed(() -> {
                     if (token == playToken) {
-                        MediaBridge.get().restoreModes(OverlayService.this);
+                        restoreShuffle();
                     }
-                }, 900L);
+                }, 1200L);
                 refreshAfterPlay(token, 4);
                 return;
             }
@@ -528,6 +538,44 @@ public class OverlayService extends Service implements MediaBridge.Listener {
     }
 
     /** Metadata often arrives a moment after the switch, so keep the bar in step. */
+    /** Maps a point-song capability to the route number used by the setting. */
+    private static int routeOf(int capability) {
+        if (capability == MediaBridge.CAN_MEDIA_ID) {
+            return Prefs.ROUTE_MEDIA_ID;
+        }
+        return capability == MediaBridge.CAN_SEARCH ? Prefs.ROUTE_SEARCH : Prefs.ROUTE_URI;
+    }
+
+    /**
+     * Picking one song makes the player build a fresh queue, and most players set shuffle
+     * back to off while doing it. How to undo that depends on what the player exposes, so
+     * the settings page picks the mechanism.
+     */
+    private void restoreShuffle() {
+        MediaBridge bridge = MediaBridge.get();
+        int mode = Prefs.reshuffleMode(this);
+        if (mode == Prefs.RESHUFFLE_OFF) {
+            return;
+        }
+        if (bridge.shuffleMode() != MediaBridge.MODE_UNKNOWN) {
+            // A player that does expose the mode needs no guessing.
+            bridge.restoreModes(this);
+            return;
+        }
+        if (mode == Prefs.RESHUFFLE_COMMAND && bridge.setShuffleMode(MediaBridge.SHUFFLE_ALL)) {
+            return;
+        }
+        if (mode == Prefs.RESHUFFLE_CUSTOM && bridge.sendShuffleCustomAction()) {
+            return;
+        }
+        // Default: the player's own button flipped while it rebuilt the queue, so a single
+        // press puts it back - and it is only pressed when the button really did change.
+        String now = bridge.shuffleButtonSignature();
+        if (shuffleWatch != null && now != null && !now.equals(shuffleWatch)) {
+            bridge.pressShuffleButton();
+        }
+    }
+
     private void refreshAfterPlay(int token, int times) {
         if (times <= 0) {
             return;

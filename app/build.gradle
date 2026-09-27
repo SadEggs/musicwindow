@@ -20,8 +20,14 @@ android {
         applicationId 'com.musicbar.overlay'
         minSdk 26
         targetSdk 35
-        versionCode 11
-        versionName '0.10'
+        versionCode 12
+        versionName '0.11'
+    }
+
+    // The resources and the README are full of Chinese; make sure the sources are always
+    // read as UTF-8 rather than whatever the build machine happens to default to.
+    tasks.withType(JavaCompile).configureEach {
+        options.encoding = 'UTF-8'
     }
 
     signingConfigs {
