@@ -110,7 +110,9 @@
 - **切歌提示音**：默认**只在蓝牙音频时**响一声（外放静音），设置里可选「关闭 / 仅蓝牙 / 始终」。
   悬浮条和面板上的按钮都关掉了系统"触摸提示音"，所以外放时**任何操作都不会有提示音**。
   （若蓝牙时还听到不同的"嘟嘟"声，那是耳机自己在响应 AVRCP 切歌，App 无法控制。）
-- **单击条身文字区**：播放 / 暂停
+- **单击条身文字区**：播放 / 暂停（文字区有**淡边框**标出可滑动区域，滑动时边框会点亮）
+- **按钮**（上一曲 / 播放暂停 / 下一曲 / 钉子 / 文件夹）：**占满整条高度**、宽 48dp（播放键 54dp），
+  轻按下会有**轻微触感反馈**，所以即使条很细也点得准
 - **长按条身后拖动**：挪到任意位置（松手后自动记住）
 - **点钉子按钮**：固定 / 取消固定。钉住后条**完全不能移动**（长按拖动也失效），图标变琥珀色，避免游戏中误碰挪走。
 - **点右端文件夹图标**：展开 / 收起媒体库面板。**面板展开时它右边会多出一个 ✕ 按钮**，
@@ -133,12 +135,17 @@
 3. **按文件点播**（`playFromUri`）—— 直接给出该文件的 MediaStore 地址。
 
 **随机播放模式会被保住**（v0.10 起）：播放器接到"播这一首"的请求时通常会**重建播放队列**，
-而随机播放是跟着队列走的 —— 所以点歌会顺手把随机播放关掉。现在点歌前会先记住
-**随机 + 循环模式**（`PlaybackState.getShuffleMode()` / `getRepeatMode()`），歌曲真正切过去之后
-再通过 `setShuffleMode()` / `setRepeatMode()` 放回去；模式没变就完全不动它。
-设置里的「**点歌时保持随机播放模式**」可以关掉这个行为。
-（状态页会显示播放器上报的 `随机播放=` / `循环模式=`，如果 Poweramp 没上报随机状态，
-那一项会显示"关"，说明它没通过标准接口暴露这个信息。）
+而随机播放是跟着队列走的 —— 所以从面板点歌会顺手把随机播放关掉。现在点歌前会先记住
+**随机 + 循环模式**，歌曲真正切过去之后再放回去；模式没变就完全不动它。
+设置里的「**点歌时保持随机播放模式**」（默认开）可以关掉这个行为。
+
+> 关于实现：这两个模式在不同 Android 版本上的接口位置并不统一，**编译用的 `android.jar` 里
+> `PlaybackState` 既没有 `SHUFFLE_MODE_*` 常量也没有 `getShuffleMode()`**，直接调用根本编译不过
+> —— 所以本 App 用**反射**去调设备上的 `MediaController` / `TransportControls`：
+> 设备有这些方法就生效，没有就安静跳过，绝不会因为接口差异而崩。
+> 状态页的 `随机接口=` 会告诉你是哪种情况（`controller` = 找到并生效 / `none` = 该设备没有 /
+> `unprobed` = 还没读到）。如果它显示 `none`，说明播放器没有通过标准接口暴露随机状态，
+> 那种情况下任何 App 都无法读取或恢复它。
 
 **暂停状态下点歌也已修复**：有些播放器（例如 Poweramp）在暂停时收到点播请求，
 会把新歌装进队列**但不开始播放**，旧版本因此误判失败并去试下一种，结果状态被搅乱。
@@ -371,7 +378,10 @@ Then tap **Start** in the app.
   speaker stays silent; the setting offers off / Bluetooth only / always. Sound effects are switched
   off on the bar and the panel, so no system touch sound is heard either. A headset that beeps on its
   own when the track changes does so from its own firmware and cannot be controlled by any app.
-- **Tap the title area**: play / pause.
+- **Tap the title area**: play / pause. The title area carries a faint **outline** marking the swipe
+  zone, which lights up while a swipe is in progress.
+- **Buttons** (previous / play-pause / next / pin / folder): they fill the whole height of the bar and
+  are 48dp wide (54dp for play) with a light haptic tick, so they stay easy to hit on a thin bar.
 - **Long-press, then drag**: move it anywhere; the position is remembered.
 - **Pin button**: locks the position so it cannot be moved by accident (the icon turns amber).
 - **Folder button**: unfold / fold the library panel. While the panel is open a **✕** appears just to
@@ -395,10 +405,16 @@ attempt whether the track really changed:
 
 **The shuffle mode is preserved** (v0.10 and later): a player usually answers "play this one song" by
 building a fresh queue, and shuffle belongs to the queue it discarded — which is why picking a song
-used to turn shuffle off. The app now remembers the **shuffle and repeat** modes
-(`PlaybackState.getShuffleMode()` / `getRepeatMode()`) before the request and puts them back with
-`setShuffleMode()` / `setRepeatMode()` once the song has really changed; if nothing changed, it does
-nothing at all. The setting "Keep shuffle when picking songs" turns this off.
+used to turn shuffle off. The app now remembers the **shuffle and repeat** modes before the request
+and puts them back once the song has really changed; if nothing changed, it does nothing at all. The
+setting "Keep shuffle when picking songs" (on by default) turns this off.
+
+> On the implementation: those accessors are not in a consistent place across Android versions, and
+> the `android.jar` this app compiles against publishes **neither `SHUFFLE_MODE_*` constants nor
+> `getShuffleMode()` on `PlaybackState`** — a direct call would not even compile. The app therefore
+> reaches `MediaController` / `TransportControls` **reflectively**: where the device has them the mode
+> is preserved, where it does not the calls are skipped instead of crashing. The status page shows
+> `随机接口=` (`controller` = found and working, `none` = this device does not publish it).
 
 **Point-song while paused is fixed**: some players (Poweramp among them) accept the request, load
 the new track, and then just sit there because playback was paused — older builds misread that as a

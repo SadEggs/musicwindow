@@ -65,19 +65,6 @@ jobs:
       - name: Point Gradle at the SDK
         run: echo "sdk.dir=$ANDROID_SDK_ROOT" > local.properties
 
-      # TEMPORARY PROBE: ask the real android.jar which shuffle / repeat members the
-      # public media-session API actually publishes, instead of guessing. Removed once
-      # the answer is known.
-      - name: Probe media session shuffle API (temporary)
-        run: |
-          JAR="$ANDROID_SDK_ROOT/platforms/android-35/android.jar"
-          echo "=== jar: $JAR ==="
-          for CLS in android.media.session.PlaybackState android.media.session.MediaController 'android.media.session.MediaController$TransportControls' android.media.session.MediaSession; do
-            echo "--- $CLS ---"
-            javap -constants -classpath "$JAR" "$CLS" 2>&1 | grep -i -E "shuffle|repeat" || echo "  (nothing)"
-          done
-          echo "=== end probe ==="
-
       # One signing identity for every build, created once and then reused, so a
       # newer APK installs straight over the previous one. Before this, each run
       # generated a fresh throwaway debug key and Android rejected the update with

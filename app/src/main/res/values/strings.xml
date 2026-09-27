@@ -90,11 +90,13 @@
     <string name="diag_refused">被系统拒绝</string>
     <string name="diag_shuffle">随机播放</string>
     <string name="diag_repeat">循环模式</string>
+    <string name="diag_mode_api">随机接口</string>
     <string name="mode_off">关</string>
     <string name="mode_shuffle_all">全部随机</string>
     <string name="mode_shuffle_group">分组随机</string>
     <string name="mode_repeat_one">单曲循环</string>
     <string name="mode_repeat_all">列表循环</string>
+    <string name="mode_repeat_group">分组循环</string>
     <string name="set_keep_shuffle">点歌时保持随机播放模式</string>
     <string name="btn_recheck">重新检测播放器</string>
     <string name="hint_recheck">更新安装后如果检测不到播放器、悬浮条不出来，先点上面的「重新检测播放器」——它会请系统重新绑定通知使用权，通常一下就恢复，不用清除数据。</string>
