@@ -42,6 +42,7 @@ public class OverlayService extends Service implements MediaBridge.Listener {
     private boolean panelAdded;
     private int playToken;
     private String shuffleWatch;
+    private String shuffleActionWatch;
     private long hideSince;
     private long lastActivity;
     private int dragBaseX;
@@ -437,8 +438,15 @@ public class OverlayService extends Service implements MediaBridge.Listener {
         Toast.makeText(this, getString(R.string.toast_play_searching, song.title),
                 Toast.LENGTH_SHORT).show();
 
+        if (Prefs.playRoute(this) == Prefs.ROUTE_URI) {
+            // Playing the file itself needs no walk through the player's browse tree, which
+            // is what used to make a tap take several seconds to start.
+            startPlayAttempts(song, null, before, token);
+            return;
+        }
+
         final PlayerBrowser browser = PlayerBrowser.get(this);
-        browser.findMediaId(song.title, song.artist, 4000L,
+        browser.findMediaId(song.title, song.artist, 2000L,
                 (mediaId, how) -> {
                     if (token != playToken) {
                         return;
@@ -480,8 +488,10 @@ public class OverlayService extends Service implements MediaBridge.Listener {
         }
         // Playing one song discards the queue, and the shuffle mode with it.
         MediaBridge.get().snapshotModes();
-        // Remember what the player's own shuffle button looks like right now: the mode is
-        // not readable through the media session on this platform, but the button shows it.
+        // Remember what the player's own shuffle switch looks like right now. The mode
+        // cannot be read through the media session on this platform, but the player's own
+        // shuffle action shows its state in its icon, so a change can be detected.
+        shuffleActionWatch = MediaBridge.get().shuffleActionSignature();
         shuffleWatch = MediaBridge.get().shuffleButtonSignature();
         attemptPlay(song, mediaId, order, count, 0, before, token);
     }
@@ -578,11 +588,27 @@ public class OverlayService extends Service implements MediaBridge.Listener {
         if (mode == Prefs.RESHUFFLE_COMMAND && bridge.setShuffleMode(MediaBridge.SHUFFLE_ALL)) {
             return;
         }
-        if (mode == Prefs.RESHUFFLE_CUSTOM && bridge.sendShuffleCustomAction()) {
+        if (mode == Prefs.RESHUFFLE_NOTIFY) {
+            pressNotificationShuffle(bridge);
             return;
         }
-        // Default: the player's own button flipped while it rebuilt the queue, so a single
-        // press puts it back - and it is only pressed when the button really did change.
+        // Automatic and always: the player's own shuffle action is the switch that exists.
+        // "Automatic" presses it only when the action really did change while the player
+        // rebuilt its queue, so nobody who keeps shuffle off gets it switched on.
+        if (bridge.hasShuffleCustomAction()) {
+            String now = bridge.shuffleActionSignature();
+            boolean changed = shuffleActionWatch != null && now != null
+                    && !now.equals(shuffleActionWatch);
+            if (mode == Prefs.RESHUFFLE_ALWAYS || changed) {
+                bridge.sendShuffleCustomAction();
+            }
+            return;
+        }
+        pressNotificationShuffle(bridge);
+    }
+
+    /** The fallback for a player that has a shuffle button in its notification instead. */
+    private void pressNotificationShuffle(MediaBridge bridge) {
         String now = bridge.shuffleButtonSignature();
         if (shuffleWatch != null && now != null && !now.equals(shuffleWatch)) {
             bridge.pressShuffleButton();
