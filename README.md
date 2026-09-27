@@ -15,7 +15,9 @@
 基于通用 **Android MediaSession**，所以 Poweramp、VLC、网易云、QQ 音乐等任何规范实现的播放器都能读。
 
 - **目标设备**：联想小新 Pad Pro 12.7 2025（TB375FC），Android 15。代码不绑定机型，Android 8.0+ 均可使用。
-- **授权**：[MIT](LICENSE) —— 随便用、随便改、随便发，保留版权声明即可。
+- **来历**：这个 App 由 **DeepSeek V4 Flash** 编写（需求由人提，代码由 AI 写，编译在 GitHub Actions 上跑）。
+- **授权**：[MIT](LICENSE) —— **任何人都可以自由编译、修改、发布**（包括自己重新打包分发），
+  但**必须署名原作者 SadEggs** 并保留版权声明。详见文末「作者与署名」。
 - **零第三方依赖**：纯 framework API，不用 AndroidX、不用 Kotlin，编译快、体积小（release 仅 ~63 KB）。
 
 ### ⚠️ 安装 / 更新必读：先"重置"，再判断是不是坏了
@@ -221,6 +223,19 @@ FloatingMusicBar/
    AndroidX 的是 `androidx.media.app.MediaBrowserService`；而清单 `<queries>` 里要写的是
    **接口动作名** `android.media.browse.MediaBrowserService`。写错任何一个都编译不过。
 
+### 作者与署名（请保留）
+
+- **原作者**：**SadEggs** — https://github.com/SadEggs
+- **代码作者**：**DeepSeek V4 Flash**（人提需求 → AI 写代码 → GitHub Actions 云端编译出 APK）
+- **授权**：[MIT](LICENSE)
+
+**你可以**：自由编译、修改、二次开发、重新打包，并把自编译的 APK 发布到任何地方（自用、送人、上架都行）。
+
+**唯一要求**：**必须署名原作者 SadEggs**，并保留本仓库的版权声明与 LICENSE。也就是说，转载、
+发布或再分发时请注明：
+
+> 原始项目：FloatingMusicBar by SadEggs — https://github.com/SadEggs/musicwindow
+
 ---
 
 ## English
@@ -233,7 +248,11 @@ implements them works — Poweramp, VLC, NetEase Cloud Music, QQ Music and so on
 
 - **Target device**: Lenovo Xiaoxin Pad Pro 12.7 2025 (TB375FC), Android 15. Nothing is
   device-specific; Android 8.0+ works.
-- **License**: [MIT](LICENSE) — use it, change it, ship it, just keep the copyright notice.
+- **How it was made**: written by **DeepSeek V4 Flash** — a human set the requirements, the model
+  wrote the code, and GitHub Actions builds the APK in the cloud.
+- **License**: [MIT](LICENSE) — **anyone may freely compile, modify, repackage and publish it**
+  (including redistributing your own build), as long as the original author **SadEggs** is credited
+  and the copyright notice is kept. See "Credits and attribution" below.
 - **Zero third-party dependencies**: plain framework APIs, no AndroidX, no Kotlin. Small and fast
   (the release APK is about 63 KB).
 
@@ -376,7 +395,24 @@ git push origin v0.8
 - Versioning: stable `v0.7`, beta `v0.7-beta1`, and the beta's `versionCode` stays below the stable
   one of the same name so it upgrades cleanly.
 
+### Credits and attribution (please keep)
+
+- **Original author**: **SadEggs** — https://github.com/SadEggs
+- **Code written by**: **DeepSeek V4 Flash** — a human set the requirements, the model wrote the
+  code, and GitHub Actions builds the APK in the cloud.
+- **License**: [MIT](LICENSE)
+
+**You may** freely compile, modify, extend, repackage and publish this app — for yourself, to share,
+or on a store.
+
+**The one requirement**: you must credit the original author **SadEggs** and keep this repository's
+copyright notice and LICENSE. In practice, when you redistribute it or publish your own build,
+link back to the original project:
+
+> Original project: FloatingMusicBar by SadEggs — https://github.com/SadEggs/musicwindow
+
 ### License
 
 [MIT](LICENSE) © 2026 SadEggs. The Android app is original work with no third-party dependencies;
-the Gradle/AGP versions only affect the build, not the shipped code.
+the Gradle/AGP versions only affect the build, not the shipped code. Attribution to the original
+author is required when you redistribute it or publish your own build.
