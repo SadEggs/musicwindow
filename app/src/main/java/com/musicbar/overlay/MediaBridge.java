@@ -5,6 +5,8 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Canvas;
+import android.graphics.drawable.Drawable;
 import android.media.MediaDescription;
 import android.media.MediaMetadata;
 import android.media.session.MediaController;
@@ -537,23 +539,34 @@ public class MediaBridge {
     /**
      * A fingerprint of a notification icon: the action icons of a media notification are
      * the only place a player's shuffle state is visible at all, and they change when the
-     * state does. Built from the bitmap so it needs no resource API.
+     * state does. The icon is rendered as it looks right now, which also catches a single
+     * resource that is drawn differently per state.
      */
-    private static String iconSignature(android.graphics.drawable.Icon icon) {
+    private String iconSignature(android.graphics.drawable.Icon icon) {
         if (icon == null) {
             return "null";
         }
         try {
-            StringBuilder sb = new StringBuilder("t").append(icon.getType());
-            Bitmap bmp = icon.getBitmap();
-            if (bmp == null) {
-                return sb.append(":nobitmap").toString();
+            Drawable drawable = icon.loadDrawable(app);
+            if (drawable == null) {
+                return "nodrawable";
             }
-            sb.append(':').append(bmp.getWidth()).append('x').append(bmp.getHeight());
-            int step = Math.max(1, bmp.getWidth() / 8);
-            for (int x = 0; x < bmp.getWidth(); x += step) {
-                sb.append(':').append(Integer.toHexString(bmp.getPixel(x, bmp.getHeight() / 2)));
+            int width = Math.max(1, drawable.getIntrinsicWidth());
+            int height = Math.max(1, drawable.getIntrinsicHeight());
+            Bitmap bmp = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
+            Canvas canvas = new Canvas(bmp);
+            drawable.setBounds(0, 0, width, height);
+            drawable.draw(canvas);
+            StringBuilder sb = new StringBuilder("t").append(icon.getType())
+                    .append(':').append(width).append('x').append(height);
+            int stepX = Math.max(1, width / 8);
+            int stepY = Math.max(1, height / 8);
+            for (int y = 0; y < height; y += stepY) {
+                for (int x = 0; x < width; x += stepX) {
+                    sb.append(':').append(Integer.toHexString(bmp.getPixel(x, y)));
+                }
             }
+            bmp.recycle();
             return sb.toString();
         } catch (Throwable t) {
             return "error";
