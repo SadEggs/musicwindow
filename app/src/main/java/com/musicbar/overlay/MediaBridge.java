@@ -15,6 +15,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.os.SystemClock;
 import android.provider.Settings;
+import android.service.notification.NotificationListenerService;
 import android.text.TextUtils;
 
 import java.io.InputStream;
@@ -31,6 +32,9 @@ public class MediaBridge {
     }
 
     private static final long TICK_FAST_MS = 500L;
+
+    /** How often we may ask the system to bind our notification listener again. */
+    private static final long REBIND_EVERY_MS = 5000L;
 
     private static MediaBridge instance;
 
@@ -50,6 +54,7 @@ public class MediaBridge {
 
     private boolean started;
     private boolean sessionsListenerAdded;
+    private long rebindRequestedAt;
 
     private String status = "";
     private Bitmap artCache;
@@ -154,6 +159,61 @@ public class MediaBridge {
         notifyChanged();
     }
 
+    /**
+     * Ask the system to bind our notification listener again.
+     *
+     * <p>Android drops that binding when the app is updated, and several ROMs do not
+     * restore it until the permission is toggled or the device is rebooted. That used
+     * to leave the bar detecting nothing after an update - the listener object was
+     * null, so it never even asked for the session list - and clearing the app data
+     * was the only way out. Asking for a rebind explicitly repairs it on its own,
+     * without the user touching any setting.
+     */
+    public void requestListenerRebind() {
+        if (app == null) {
+            return;
+        }
+        rebindRequestedAt = SystemClock.elapsedRealtime();
+        try {
+            NotificationListenerService.requestRebind(listenerComponent());
+        } catch (Throwable ignored) {
+            // ignore
+        }
+    }
+
+    /** True when our notification listener is connected in this process. */
+    public boolean listenerConnected() {
+        return MediaListenerService.get() != null;
+    }
+
+    /**
+     * How many media sessions the system currently reports: -1 without notification
+     * access, -2 when the system refuses the query. Shown on the status page.
+     */
+    public int sessionCount() {
+        if (app == null || manager == null || !hasNotificationAccess()) {
+            return -1;
+        }
+        try {
+            List<MediaController> list = manager.getActiveSessions(listenerComponent());
+            return list == null ? 0 : list.size();
+        } catch (Throwable t) {
+            return -2;
+        }
+    }
+
+    /** Nudge the system when the listener is not connected but should be. */
+    private void ensureListenerBound() {
+        if (app == null || !hasNotificationAccess() || listenerConnected()) {
+            return;
+        }
+        long now = SystemClock.elapsedRealtime();
+        if (now - rebindRequestedAt < REBIND_EVERY_MS) {
+            return;
+        }
+        requestListenerRebind();
+    }
+
     // ----- session discovery -----------------------------------------------------
 
     private ComponentName listenerComponent() {
@@ -190,11 +250,15 @@ public class MediaBridge {
         if (app == null || manager == null) {
             return;
         }
-        if (!hasNotificationAccess() || MediaListenerService.get() == null) {
+        if (!hasNotificationAccess()) {
             status = app.getString(R.string.bar_need_nls);
             setController(null);
             return;
         }
+        // The session list only needs the listener to be an *enabled* listener: it
+        // does not have to be connected in this process. Requiring that earlier meant
+        // a dropped binding looked exactly like a missing permission, and nothing
+        // could recover until the app data was cleared.
         try {
             List<MediaController> list = manager.getActiveSessions(listenerComponent());
             status = "";
@@ -205,6 +269,7 @@ public class MediaBridge {
         } catch (Throwable t) {
             status = "";
         }
+        ensureListenerBound();
     }
 
     private void pick(List<MediaController> list) {

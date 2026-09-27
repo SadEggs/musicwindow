@@ -69,6 +69,7 @@ public class OverlayService extends Service implements MediaBridge.Listener {
         @Override
         public void onPrev() {
             MediaBridge.get().prev();
+            Beep.onTrackChange(OverlayService.this);
             touch();
         }
 
@@ -81,6 +82,7 @@ public class OverlayService extends Service implements MediaBridge.Listener {
         @Override
         public void onNext() {
             MediaBridge.get().next();
+            Beep.onTrackChange(OverlayService.this);
             touch();
         }
 
@@ -505,6 +507,7 @@ public class OverlayService extends Service implements MediaBridge.Listener {
                 }
                 Toast.makeText(OverlayService.this,
                         getString(R.string.toast_play_ok, bridge.title()), Toast.LENGTH_SHORT).show();
+                Beep.onTrackChange(OverlayService.this);
                 refreshAfterPlay(token, 4);
                 return;
             }

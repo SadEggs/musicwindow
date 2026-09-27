@@ -73,10 +73,10 @@ public class MusicBarView extends LinearLayout {
     private final ImageButton playButton;
     private final ImageButton pinButton;
     private ImageButton libraryButton;
+    private ImageButton closeButton;
 
     private static final long LONG_PRESS_MS = 320L;
     private static final int SWIPE_MIN_DP = 56;
-    private static final int SWIPE_COMMIT_PERCENT = 30;
 
     private final Handler ui = new Handler(Looper.getMainLooper());
 
@@ -108,6 +108,9 @@ public class MusicBarView extends LinearLayout {
         setOrientation(VERTICAL);
         setBackgroundResource(R.drawable.bg_bar);
         setPadding(dp(12), dp(8), dp(12), dp(8));
+        // The bar handles its own feedback: the system's touch sound would beep on
+        // every prev/next tap, which is unwanted over the tablet speaker.
+        setSoundEffectsEnabled(false);
 
         // ---- full layout -------------------------------------------------------
         fullBox = new LinearLayout(ctx);
@@ -226,6 +229,17 @@ public class MusicBarView extends LinearLayout {
             return true;
         });
         row.addView(libraryButton, buttonParams(false));
+
+        // The way out of the panel: a cross just to the right of the folder button,
+        // shown only while the panel is open.
+        closeButton = makeButton(R.drawable.ic_close, R.string.cd_close_library);
+        closeButton.setVisibility(GONE);
+        closeButton.setOnClickListener(v -> {
+            if (cb != null) {
+                cb.onLibraryToggle();
+            }
+        });
+        row.addView(closeButton, buttonParams(false));
 
         LinearLayout progressRow = new LinearLayout(ctx);
         progressRow.setOrientation(HORIZONTAL);
@@ -368,17 +382,16 @@ public class MusicBarView extends LinearLayout {
     }
 
     /**
-     * While the library panel is open the right-hand button becomes the cross that
-     * closes it, so the way out sits in the corner the panel unfolds from.
+     * While the library panel is open, a cross appears just right of the folder
+     * button, so the way out sits at the panel's top right corner.
      */
     public void setLibraryOpen(boolean open) {
-        if (libraryButton == null) {
-            return;
+        if (closeButton != null) {
+            closeButton.setVisibility(open ? VISIBLE : GONE);
         }
-        libraryButton.setImageResource(open ? R.drawable.ic_close : R.drawable.ic_folder);
-        libraryButton.setContentDescription(getContext().getString(
-                open ? R.string.cd_close_library : R.string.cd_library));
-        libraryButton.setAlpha(open ? 1f : 0.85f);
+        if (libraryButton != null) {
+            libraryButton.setAlpha(open ? 1f : 0.85f);
+        }
     }
 
     public void setCompact(boolean value) {
@@ -583,9 +596,13 @@ public class MusicBarView extends LinearLayout {
         return Math.max(dp(120), textStack.getWidth());
     }
 
-    /** How far a swipe must travel before letting go really switches the song. */
+    /**
+     * How far a swipe must travel before letting go really switches the song: a
+     * share of the song text width, adjustable on the settings page.
+     */
     private int commitDistance() {
-        return Math.max(dp(SWIPE_MIN_DP), stackWidth() * SWIPE_COMMIT_PERCENT / 100);
+        int pct = Prefs.swipePct(getContext());
+        return Math.max(dp(SWIPE_MIN_DP), stackWidth() * pct / 100);
     }
 
     private void beginSwipe(float dx) {
@@ -685,6 +702,7 @@ public class MusicBarView extends LinearLayout {
         button.setScaleType(ImageView.ScaleType.CENTER);
         button.setPadding(dp(6), dp(6), dp(6), dp(6));
         button.setContentDescription(getContext().getString(contentDescRes));
+        button.setSoundEffectsEnabled(false);
         return button;
     }
 

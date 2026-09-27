@@ -45,6 +45,9 @@ public class FolderPanelView extends LinearLayout {
         this.cb = callback;
         setOrientation(VERTICAL);
         setBackgroundResource(R.drawable.bg_bar);
+        // Tapping tiles should not make the system touch sound: the panel sits over
+        // a game and the tablet speaker stays quiet.
+        setSoundEffectsEnabled(false);
 
         rowHeightPx = dp(78);
         headerHeightPx = dp(46);
@@ -199,6 +202,7 @@ public class FolderPanelView extends LinearLayout {
         cell.setOrientation(VERTICAL);
         cell.setGravity(Gravity.CENTER);
         cell.setPadding(dp(2), dp(4), dp(2), dp(4));
+        cell.setSoundEffectsEnabled(false);
 
         ImageView icon = new ImageView(ctx);
         icon.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
