@@ -100,9 +100,11 @@
     <string name="set_keep_shuffle">点歌时保持随机播放模式</string>
     <string name="set_reshuffle">点歌后恢复随机播放</string>
     <string name="reshuffle_off">关闭</string>
-    <string name="reshuffle_watch">自动（推荐）</string>
+    <string name="reshuffle_auto">自动（推荐）</string>
+    <string name="reshuffle_always">总是按一次（默认）</string>
     <string name="reshuffle_cmd">接口指令</string>
-    <string name="reshuffle_custom">播放器自定义动作</string>
+    <string name="reshuffle_notify">通知栏按钮</string>
+    <string name="diag_act">随机动作</string>
     <string name="set_play_route">点播方式</string>
     <string name="route_auto">自动</string>
     <string name="route_id">按编号</string>

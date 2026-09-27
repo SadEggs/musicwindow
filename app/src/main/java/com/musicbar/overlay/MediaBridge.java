@@ -26,6 +26,7 @@ import java.io.InputStream;
 import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Locale;
+import java.util.TreeSet;
 
 /**
  * Reads the currently active media session (Poweramp) and exposes a tiny,
@@ -676,27 +677,90 @@ public class MediaBridge {
         }
     }
 
-    /** Send the session's own shuffle custom action, if it publishes one. */
-    public boolean sendShuffleCustomAction() {
+    /**
+     * The player's own shuffle action. Poweramp publishes SHUFFLE and REPEAT as custom
+     * actions on its playback state, and that is the only shuffle switch it exposes: there
+     * is no session accessor for the mode, and no shuffle button in its notification.
+     */
+    public PlaybackState.CustomAction shuffleCustomAction() {
         try {
-            MediaController c = controller;
             PlaybackState st = rawState();
-            if (c == null || st == null) {
-                return false;
+            if (st == null) {
+                return null;
             }
             List<PlaybackState.CustomAction> actions = st.getCustomActions();
             if (actions == null) {
-                return false;
+                return null;
             }
             for (PlaybackState.CustomAction a : actions) {
-                String name = a.getAction();
-                if (matchesAny(name, SHUFFLE_WORDS)) {
-                    c.getTransportControls().sendCustomAction(a, (Bundle) null);
-                    return true;
+                if (matchesAny(a.getAction(), SHUFFLE_WORDS)) {
+                    return a;
                 }
             }
         } catch (Throwable ignored) {
-            // Nothing to send.
+            // No session, no actions.
+        }
+        return null;
+    }
+
+    public boolean hasShuffleCustomAction() {
+        return shuffleCustomAction() != null;
+    }
+
+    /**
+     * What the player's shuffle action looks like right now: its icon resource and whatever
+     * it publishes alongside. Comparing this before and after a point-song is how the app
+     * knows the player changed the mode itself, without being able to read the mode.
+     */
+    public String shuffleActionSignature() {
+        PlaybackState.CustomAction a = shuffleCustomAction();
+        if (a == null) {
+            return null;
+        }
+        try {
+            return "i" + a.getIcon() + extrasText(a);
+        } catch (Throwable t) {
+            return "error";
+        }
+    }
+
+    /** Description of the shuffle action, for the status page. */
+    public String shuffleActionText() {
+        PlaybackState.CustomAction a = shuffleCustomAction();
+        if (a == null) {
+            return "none";
+        }
+        try {
+            return "icon=" + a.getIcon() + extrasText(a);
+        } catch (Throwable t) {
+            return "error";
+        }
+    }
+
+    private static String extrasText(PlaybackState.CustomAction action) {
+        Bundle extras = action.getExtras();
+        if (extras == null || extras.isEmpty()) {
+            return "";
+        }
+        StringBuilder sb = new StringBuilder();
+        for (String key : new TreeSet<>(extras.keySet())) {
+            sb.append(' ').append(key).append('=').append(extras.get(key));
+        }
+        return sb.toString();
+    }
+
+    /** One press of the player's own shuffle action. */
+    public boolean sendShuffleCustomAction() {
+        PlaybackState.CustomAction action = shuffleCustomAction();
+        MediaController c = controller;
+        if (action == null || c == null) {
+            return false;
+        }
+        try {
+            c.getTransportControls().sendCustomAction(action, (Bundle) null);
+            return true;
+        } catch (Throwable ignored) {
+            // A player that does not really handle it keeps its own mode.
         }
         return false;
     }

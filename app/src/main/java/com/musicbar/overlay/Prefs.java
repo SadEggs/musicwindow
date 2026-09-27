@@ -149,12 +149,13 @@ public final class Prefs {
     }
 
     // How to undo the shuffle reset a player performs while it builds a new queue:
-    // 0 = off, 1 = watch the player's own notification button (default), 2 = transport
-    // command, 3 = the session's own custom action.
+    // 0 = off, 1 = automatic (recommended), 2 = always press the player's switch once,
+    // 3 = the transport command, 4 = the player's notification button.
     public static final int RESHUFFLE_OFF = 0;
-    public static final int RESHUFFLE_WATCH = 1;
-    public static final int RESHUFFLE_COMMAND = 2;
-    public static final int RESHUFFLE_CUSTOM = 3;
+    public static final int RESHUFFLE_AUTO = 1;
+    public static final int RESHUFFLE_ALWAYS = 2;
+    public static final int RESHUFFLE_COMMAND = 3;
+    public static final int RESHUFFLE_NOTIFY = 4;
 
     // Which request a point-song uses: 0 = automatic ladder, 1 = media id, 2 = search,
     // 3 = file uri. Not every player keeps its shuffle mode on every route, so this is
@@ -165,11 +166,11 @@ public final class Prefs {
     public static final int ROUTE_URI = 3;
 
     public static int reshuffleMode(Context c) {
-        return clamp(sp(c).getInt(K_RESHUFFLE, RESHUFFLE_WATCH), 0, 3);
+        return clamp(sp(c).getInt(K_RESHUFFLE, RESHUFFLE_ALWAYS), 0, 4);
     }
 
     public static int playRoute(Context c) {
-        return clamp(sp(c).getInt(K_PLAY_ROUTE, ROUTE_AUTO), 0, 3);
+        return clamp(sp(c).getInt(K_PLAY_ROUTE, ROUTE_URI), 0, 3);
     }
 
     /**

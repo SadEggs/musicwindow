@@ -128,10 +128,11 @@ public class MainActivity extends Activity {
         addChoice(R.string.set_beep, Prefs.K_BEEP_MODE, Beep.MODE_BLUETOOTH,
                 new int[]{R.string.beep_off, R.string.beep_bt, R.string.beep_always});
         addCheckBox(R.string.set_keep_shuffle, Prefs.K_KEEP_SHUFFLE, true);
-        addChoice(R.string.set_reshuffle, Prefs.K_RESHUFFLE, Prefs.RESHUFFLE_WATCH,
-                new int[]{R.string.reshuffle_off, R.string.reshuffle_watch,
-                        R.string.reshuffle_cmd, R.string.reshuffle_custom});
-        addChoice(R.string.set_play_route, Prefs.K_PLAY_ROUTE, Prefs.ROUTE_AUTO,
+        addChoice(R.string.set_reshuffle, Prefs.K_RESHUFFLE, Prefs.RESHUFFLE_ALWAYS,
+                new int[]{R.string.reshuffle_off, R.string.reshuffle_auto,
+                        R.string.reshuffle_always, R.string.reshuffle_cmd,
+                        R.string.reshuffle_notify});
+        addChoice(R.string.set_play_route, Prefs.K_PLAY_ROUTE, Prefs.ROUTE_URI,
                 new int[]{R.string.route_auto, R.string.route_id,
                         R.string.route_search, R.string.route_uri});
         addCheckBox(R.string.set_folder_play, Prefs.K_FOLDER_PLAY, true);
@@ -221,6 +222,7 @@ public class MainActivity extends Activity {
                 + " " + getString(R.string.diag_mode_api) + "=" + bridge.modeApi()
                 + " " + getString(R.string.diag_notify) + "=" + bridge.notificationActionsText()
                 + " " + getString(R.string.diag_custom) + "=" + bridge.customActionsText()
+                + " " + getString(R.string.diag_act) + "=" + bridge.shuffleActionText()
                 + " " + getString(R.string.diag_queue) + "=" + queueText(bridge.queueSize());
     }
 
