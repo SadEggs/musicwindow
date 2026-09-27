@@ -93,11 +93,22 @@ jobs:
           base64 -d app/keystore.b64 > app/release.keystore
           echo "Keystore ready: $(ls -l app/release.keystore | awk '{print $5}') bytes"
 
+      # A compile error has to be readable afterwards: the step log is not reachable from
+      # every environment, so the same output is kept as a file and uploaded below. The
+      # exit status still comes from gradle thanks to pipefail.
       - name: Build debug APK
-        run: gradle assembleDebug --no-daemon --stacktrace
+        run: set -o pipefail; gradle assembleDebug --no-daemon --stacktrace 2>&1 | tee build-debug.log
 
       - name: Build release APK
-        run: gradle assembleRelease --no-daemon --stacktrace
+        run: set -o pipefail; gradle assembleRelease --no-daemon --stacktrace 2>&1 | tee build-release.log
+
+      - name: Upload build logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-logs
+          path: build-*.log
+          if-no-files-found: ignore
 
       - name: Show the signing certificate
         run: |

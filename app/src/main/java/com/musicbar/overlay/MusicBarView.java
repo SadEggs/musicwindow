@@ -89,6 +89,7 @@ public class MusicBarView extends LinearLayout {
     private boolean longPressed;
     private boolean swipeFired;
     private boolean pinned;
+    private boolean idleAtDown;
     private boolean lastPlaying;
     private boolean swipeMode;
     private float swipeDx;
@@ -495,6 +496,9 @@ public class MusicBarView extends LinearLayout {
                     swipeFired = false;
                     swipeMode = false;
                     swipeDx = 0f;
+                    // Remember whether the bar was dimmed when the finger landed: waking it
+                    // up must not also pause the music.
+                    idleAtDown = isDimmed();
                     ui.postDelayed(longPressRunnable, LONG_PRESS_MS);
                     if (cb != null) {
                         cb.onUserActivity();
@@ -560,7 +564,13 @@ public class MusicBarView extends LinearLayout {
                             cb.onDragEnd();
                         }
                     } else if (!swipeFired) {
-                        handleTap(v);
+                        if (idleAtDown) {
+                            // The bar was dimmed: this tap only brought it back to full
+                            // strength, so it must not toggle playback as well.
+                            idleAtDown = false;
+                        } else {
+                            handleTap(v);
+                        }
                     }
                     dragging = false;
                     longPressed = false;
@@ -584,6 +594,21 @@ public class MusicBarView extends LinearLayout {
             }
         }
     };
+
+    /**
+     * Whether the bar is currently showing its dimmed, resting state. The two alpha levels
+     * come from the settings, so this stays right when they are changed; if they are set
+     * close together there is nothing to wake and this is always false.
+     */
+    private boolean isDimmed() {
+        Context ctx = getContext();
+        float idle = Prefs.alphaIdle(ctx) / 100f;
+        float active = Prefs.alphaActive(ctx) / 100f;
+        if (active - idle < 0.1f) {
+            return false;
+        }
+        return getAlpha() < (idle + active) / 2f;
+    }
 
     private void handleTap(View v) {
         if (v == handleBox) {

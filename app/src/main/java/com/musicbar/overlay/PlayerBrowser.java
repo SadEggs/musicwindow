@@ -76,6 +76,8 @@ public class PlayerBrowser {
     private String pendingArtist;
     private long pendingBudget;
     private Listener pendingListener;
+    private String lastParent;
+    private String kept;
 
     private PlayerBrowser(Context c) {
         this.ctx = c;
@@ -83,6 +85,29 @@ public class PlayerBrowser {
 
     public String status() {
         return status;
+    }
+
+    /** The folder the last found song was found in, or null. */
+    public String lastParent() {
+        return lastParent;
+    }
+
+    /**
+     * Keep a folder subscribed once the search is over. A player treats the list it was last
+     * asked to browse as the context for the next play request, so subscribing to the folder
+     * before playing one of its songs is how "play this one, but inside this folder" is
+     * expressed - and shuffle then has the whole folder to work on instead of a single track.
+     */
+    public void keepSubscribed(String parentId) {
+        if (parentId == null || browser == null || !browser.isConnected()) {
+            return;
+        }
+        try {
+            browser.subscribe(parentId, subscriptionCallback);
+            kept = parentId;
+        } catch (Throwable ignored) {
+            // The player's session can disappear at any moment.
+        }
     }
 
     /** Localised one-line summary for the settings page. */
@@ -232,6 +257,7 @@ public class PlayerBrowser {
         int items;
         int pending;
         boolean finished;
+        String currentParent;
 
         Search(String title, String artist, long budgetMs, Listener listener) {
             this.want = normalize(title);
@@ -301,6 +327,7 @@ public class PlayerBrowser {
             return;
         }
         s.pending--;
+        s.currentParent = parentId;
 
         if (children != null) {
             for (MediaBrowser.MediaItem item : children) {
@@ -357,6 +384,8 @@ public class PlayerBrowser {
         if (value > s.bestScore) {
             s.bestScore = value;
             s.bestId = item.getMediaId();
+            // The list this song was found in is the folder it lives in.
+            lastParent = s.currentParent;
         }
         return value;
     }
@@ -401,6 +430,10 @@ public class PlayerBrowser {
         s.finished = true;
         handler.removeCallbacks(deadlineRunnable);
         for (String id : new ArrayList<>(s.subscribed)) {
+            if (id.equals(kept)) {
+                // A folder deliberately kept open for the pending play request.
+                continue;
+            }
             try {
                 browser.unsubscribe(id);
             } catch (Throwable ignored) {
@@ -421,6 +454,9 @@ public class PlayerBrowser {
         s.finished = true;
         handler.removeCallbacks(deadlineRunnable);
         for (String id : new ArrayList<>(s.subscribed)) {
+            if (id.equals(kept)) {
+                continue;
+            }
             try {
                 browser.unsubscribe(id);
             } catch (Throwable ignored) {

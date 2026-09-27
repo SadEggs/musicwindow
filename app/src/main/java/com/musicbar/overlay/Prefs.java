@@ -35,6 +35,9 @@ public final class Prefs {
     public static final String K_SWIPE_PCT = "swipe_pct";
     public static final String K_BEEP_MODE = "beep_mode";
     public static final String K_KEEP_SHUFFLE = "keep_shuffle";
+    public static final String K_RESHUFFLE = "reshuffle_mode";
+    public static final String K_PLAY_ROUTE = "play_route";
+    public static final String K_FOLDER_PLAY = "folder_play";
 
     public static final String EDGE_TOP = "top";
     public static final String EDGE_BOTTOM = "bottom";
@@ -143,6 +146,43 @@ public final class Prefs {
      */
     public static boolean keepShuffle(Context c) {
         return sp(c).getBoolean(K_KEEP_SHUFFLE, true);
+    }
+
+    // How to undo the shuffle reset a player performs while it builds a new queue:
+    // 0 = off, 1 = watch the player's own notification button (default), 2 = transport
+    // command, 3 = the session's own custom action.
+    public static final int RESHUFFLE_OFF = 0;
+    public static final int RESHUFFLE_WATCH = 1;
+    public static final int RESHUFFLE_COMMAND = 2;
+    public static final int RESHUFFLE_CUSTOM = 3;
+
+    // Which request a point-song uses: 0 = automatic ladder, 1 = media id, 2 = search,
+    // 3 = file uri. Not every player keeps its shuffle mode on every route, so this is
+    // selectable while the best default is being worked out.
+    public static final int ROUTE_AUTO = 0;
+    public static final int ROUTE_MEDIA_ID = 1;
+    public static final int ROUTE_SEARCH = 2;
+    public static final int ROUTE_URI = 3;
+
+    public static int reshuffleMode(Context c) {
+        return clamp(sp(c).getInt(K_RESHUFFLE, RESHUFFLE_WATCH), 0, 3);
+    }
+
+    public static int playRoute(Context c) {
+        return clamp(sp(c).getInt(K_PLAY_ROUTE, ROUTE_AUTO), 0, 3);
+    }
+
+    /**
+     * Tell the player which folder a song lives in before asking for that song, so it builds
+     * the folder's queue rather than a queue holding one track. This is also what makes
+     * shuffle mean "shuffle inside this folder" instead of "shuffle one song".
+     */
+    public static boolean folderPlay(Context c) {
+        return sp(c).getBoolean(K_FOLDER_PLAY, true);
+    }
+
+    private static int clamp(int value, int min, int max) {
+        return Math.max(min, Math.min(max, value));
     }
 
     public static int customX(Context c) {
