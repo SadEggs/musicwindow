@@ -49,7 +49,8 @@
 
 | 版本 | 内容 |
 | --- | --- |
-| **v0.7**（最新稳定版） | 按编号点播（Poweramp）、暂停状态下点歌可用、主界面切换歌曲时不再闪烁消失、媒体库面板 |
+| **v0.8**（最新稳定版） | 滑动切歌改为「**滑出下一首预览 + 松手确认**」；媒体库面板展开后右端按钮变成右上角的 **✕** |
+| v0.7 | 按编号点播（Poweramp）、暂停状态下点歌可用、主界面切换歌曲时不再闪烁消失、媒体库面板 |
 | v0.5 | 钉子（固定位置）按钮、固定签名密钥 |
 | v0.1 ~ v0.4 | 悬浮条基础功能、滑动切歌、细线进度条 |
 
@@ -97,11 +98,14 @@
 
 ### 日常操作
 
-- **向左滑动条身**：下一首 ／ **向右滑动**：上一曲
+- **向左滑动条身**：下一首 ／ **向右滑动**：上一曲 —— 滑动时会把**下一首的曲名滑进来预览**
+  （副标题显示「继续滑动 / 松手切换」），**滑过约 30% 松手才真正切歌**；松手太早会自动弹回、歌曲不变。
+  这样在不固定（可拖动）状态下也能一眼分清"我在切歌"还是"我在移条"。
 - **单击条身文字区**：播放 / 暂停
 - **长按条身后拖动**：挪到任意位置（松手后自动记住）
 - **点钉子按钮**：固定 / 取消固定。钉住后条**完全不能移动**（长按拖动也失效），图标变琥珀色，避免游戏中误碰挪走。
-- **点右端文件夹图标**：展开 / 收起媒体库面板（**长按**该图标仍是折叠成小把手）
+- **点右端文件夹图标**：展开 / 收起媒体库面板。**面板展开时该按钮会变成右上角的 ✕**，
+  点它就关闭面板（面板头部也有一个 ✕）。（**长按**该图标仍是折叠成小把手）
 - **点小把手**：展开回横条
 - **拖动中间的细线**：跳转进度（细线上的圆点就是当前位置）
 - 进度显示是「一根 2px 细线 + 一个圆点」：`12:34 . . . . o . . . . 45:07`，没有醒目的色块。
@@ -286,7 +290,8 @@ Reset methods, from lightest to heaviest — step 1 is usually enough:
 
 | Version | What is in it |
 | --- | --- |
-| **v0.7** (latest stable) | Play by library id (Poweramp), point-song now works while paused, no more bar flicker when the track changes, media library panel |
+| **v0.8** (latest stable) | Swiping now previews the incoming song and only switches when you let go past the threshold; the library button turns into the **✕** in the panel's top right corner |
+| v0.7 | Play by library id (Poweramp), point-song now works while paused, no more bar flicker when the track changes, media library panel |
 | v0.5 | Pin (lock position) button, fixed signing key |
 | v0.1 – v0.4 | The core bar, swipe to change track, hairline progress bar |
 
@@ -334,11 +339,16 @@ Then tap **Start** in the app.
 
 ### Everyday use
 
-- **Swipe left** on the bar: next track. **Swipe right**: previous track.
+- **Swipe left / right** on the bar: next / previous track. While you swipe, the incoming song's
+  title slides in with a "keep sliding / let go to switch" hint, and the switch only happens if you
+  release past roughly 30% of the width - release earlier and everything springs back with the song
+  unchanged. That makes it obvious, even with the bar unpinned and draggable, whether a gesture is
+  changing the song or moving the bar.
 - **Tap the title area**: play / pause.
 - **Long-press, then drag**: move it anywhere; the position is remembered.
 - **Pin button**: locks the position so it cannot be moved by accident (the icon turns amber).
-- **Folder button**: unfold / fold the library panel. **Long-press** it to collapse the bar instead.
+- **Folder button**: unfold / fold the library panel. While the panel is open this button becomes
+  the **✕** that closes it. **Long-press** it to collapse the bar instead.
 - **Drag the hairline**: seek; the dot on the line is the current position.
 - Progress is drawn as a 2px hairline with a dot: `12:34 . . . . o . . . . 45:07`.
 

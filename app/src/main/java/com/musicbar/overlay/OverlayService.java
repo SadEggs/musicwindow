@@ -389,6 +389,11 @@ public class OverlayService extends Service implements MediaBridge.Listener {
         } catch (Throwable ignored) {
             panelAdded = false;
         }
+        if (bar != null) {
+            // The library button turns into the cross that closes this panel, which
+            // puts the way out in the panel's top right corner.
+            bar.setLibraryOpen(true);
+        }
     }
 
     private void hidePanel() {
@@ -400,6 +405,9 @@ public class OverlayService extends Service implements MediaBridge.Listener {
             }
         }
         panelAdded = false;
+        if (bar != null) {
+            bar.setLibraryOpen(false);
+        }
     }
 
     /**
