@@ -60,6 +60,18 @@
     <string name="set_pinned">固定位置（钉住后无法拖动，避免游戏中误碰移动）</string>
     <string name="toast_pinned">已固定：拖动移动已禁用</string>
     <string name="toast_unpinned">已取消固定：长按可拖动</string>
+    <string name="cd_library">媒体库</string>
+    <string name="cd_close_library">关闭媒体库</string>
+    <string name="lib_parent">↑ 上级目录</string>
+    <string name="lib_close">✕</string>
+    <string name="lib_root">内部存储</string>
+    <string name="lib_empty">还没有读取到音乐，请先授予「音乐和音频」权限</string>
+    <string name="lib_no_song">这个文件夹里没有音乐</string>
+    <string name="perm_library">音乐库读取权限（浏览文件夹用）</string>
+    <string name="toast_play_request">已请求播放：%1$s</string>
+    <string name="toast_play_no_session">没有可用的播放会话，请先在播放器里播放一次</string>
+    <string name="toast_play_unsupported">播放器没有响应点播请求，可能不支持直接切歌，请在播放器内选歌</string>
+    <string name="hint_library">提示：点条右端的文件夹图标展开媒体库（长按该图标仍是折叠成小把手）。</string>
 
     <string name="bar_need_nls">请授予通知使用权</string>
     <string name="bar_need_overlay">请授予悬浮窗权限</string>

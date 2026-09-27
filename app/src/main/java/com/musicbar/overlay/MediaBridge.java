@@ -482,6 +482,25 @@ public class MediaBridge {
         }
     }
 
+    /**
+     * Asks the player itself to start a specific file. Nothing is brought to the
+     * foreground, so a game keeps running while the track changes. Returns false
+     * when there is no session to ask; a player that ignores the command is
+     * detected by the caller comparing the title a moment later.
+     */
+    public boolean playUri(Uri uri) {
+        MediaController c = controller;
+        if (c == null || uri == null) {
+            return false;
+        }
+        try {
+            c.getTransportControls().playFromUri(uri, null);
+            return true;
+        } catch (Throwable t) {
+            return false;
+        }
+    }
+
     public void toggle() {
         MediaController c = controller;
         if (c == null) {

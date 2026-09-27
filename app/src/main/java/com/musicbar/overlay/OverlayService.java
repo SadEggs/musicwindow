@@ -38,6 +38,8 @@ public class OverlayService extends Service implements MediaBridge.Listener {
     private WindowManager.LayoutParams params;
     private boolean viewAdded;
     private boolean collapsed;
+    private FolderPanelView panel;
+    private boolean panelAdded;
     private long lastActivity;
     private int dragBaseX;
     private int dragBaseY;
@@ -92,8 +94,16 @@ public class OverlayService extends Service implements MediaBridge.Listener {
         }
 
         @Override
+        public void onLibraryToggle() {
+            toggleLibrary();
+        }
+
+        @Override
         public void onCollapseToggle(boolean value) {
             collapsed = value;
+            if (value) {
+                hidePanel();
+            }
             applyLayout();
         }
 
@@ -114,6 +124,7 @@ public class OverlayService extends Service implements MediaBridge.Listener {
             if (params == null || Prefs.pinned(OverlayService.this)) {
                 return;
             }
+            hidePanel();
             DisplayMetrics metrics = Prefs.metrics(OverlayService.this);
             if ((params.gravity & Gravity.HORIZONTAL_GRAVITY_MASK) == Gravity.CENTER_HORIZONTAL) {
                 dragBaseX = (metrics.widthPixels - params.width) / 2 + params.x;
@@ -156,6 +167,18 @@ public class OverlayService extends Service implements MediaBridge.Listener {
                 return;
             }
             Prefs.setCustomPosition(OverlayService.this, params.x, params.y);
+        }
+    };
+
+    private final FolderPanelView.Callback panelCallback = new FolderPanelView.Callback() {
+        @Override
+        public void onClose() {
+            hidePanel();
+        }
+
+        @Override
+        public void onPlaySong(MediaLibrary.Song song) {
+            playFromLibrary(song);
         }
     };
 
@@ -202,6 +225,8 @@ public class OverlayService extends Service implements MediaBridge.Listener {
     @Override
     public void onDestroy() {
         running = false;
+        hidePanel();
+        panel = null;
         detachView();
         bar = null;
         if (displayManager != null) {
@@ -267,6 +292,138 @@ public class OverlayService extends Service implements MediaBridge.Listener {
             }
         }
         viewAdded = false;
+    }
+
+    // ----- media library panel ----------------------------------------------------
+
+    private void toggleLibrary() {
+        if (panelAdded) {
+            hidePanel();
+        } else {
+            showPanel();
+        }
+    }
+
+    /**
+     * Unfolds the library out of the bar: same width as the bar, one third of the
+     * screen tall, dropping away from wherever the bar happens to sit. When there
+     * is no room underneath it opens upwards instead.
+     */
+    private void showPanel() {
+        if (windowManager == null || params == null) {
+            return;
+        }
+        DisplayMetrics metrics = Prefs.metrics(this);
+        int screenWidth = metrics.widthPixels;
+        int screenHeight = metrics.heightPixels;
+
+        int panelWidth = Math.max(Prefs.dp(this, 480), screenWidth * 60 / 100);
+        int panelHeight = Math.max(Prefs.dp(this, 300), screenHeight / 3);
+
+        int barWidth = params.width;
+        int barHeight = params.height;
+
+        int barLeft;
+        if ((params.gravity & Gravity.HORIZONTAL_GRAVITY_MASK) == Gravity.CENTER_HORIZONTAL) {
+            barLeft = (screenWidth - barWidth) / 2 + params.x;
+        } else {
+            barLeft = params.x;
+        }
+
+        int barTop;
+        if ((params.gravity & Gravity.VERTICAL_GRAVITY_MASK) == Gravity.BOTTOM) {
+            barTop = screenHeight - barHeight - params.y;
+        } else {
+            barTop = params.y;
+        }
+
+        int x = clamp(barLeft, 0, Math.max(0, screenWidth - panelWidth));
+        int y;
+        if (barTop + barHeight + panelHeight <= screenHeight) {
+            y = barTop + barHeight;
+        } else {
+            y = barTop - panelHeight;
+        }
+        y = clamp(y, 0, Math.max(0, screenHeight - panelHeight));
+
+        if (panel == null) {
+            panel = new FolderPanelView(this, panelCallback);
+        }
+        panel.setPanelHeight(panelHeight);
+
+        String startFolder = null;
+        MediaBridge bridge = MediaBridge.get();
+        if (bridge.hasSession()) {
+            MediaLibrary library = MediaLibrary.get(this);
+            library.refreshIfStale();
+            if (library.songCount() == 0) {
+                // The permission may have been granted since the last scan.
+                library.load();
+            }
+            startFolder = library.findFolder(bridge.title(), bridge.artist());
+        }
+        panel.open(startFolder);
+
+        WindowManager.LayoutParams lp = new WindowManager.LayoutParams(
+                panelWidth,
+                panelHeight,
+                WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
+                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
+                        | WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN
+                        | WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED,
+                PixelFormat.TRANSLUCENT);
+        lp.gravity = Gravity.TOP | Gravity.START;
+        lp.x = x;
+        lp.y = y;
+        lp.setTitle("MusicBarLibrary");
+
+        try {
+            windowManager.addView(panel, lp);
+            panelAdded = true;
+        } catch (Throwable ignored) {
+            panelAdded = false;
+        }
+    }
+
+    private void hidePanel() {
+        if (panelAdded && panel != null && windowManager != null) {
+            try {
+                windowManager.removeView(panel);
+            } catch (Throwable ignored) {
+                // ignore
+            }
+        }
+        panelAdded = false;
+    }
+
+    /**
+     * Ask the running player to play this file. The player stays in the
+     * background, so a game is not interrupted; if it ignores the request we say
+     * so instead of silently pulling another app to the front.
+     */
+    private void playFromLibrary(MediaLibrary.Song song) {
+        MediaBridge bridge = MediaBridge.get();
+        final String before = bridge.title();
+
+        if (!bridge.hasSession()) {
+            Toast.makeText(this, R.string.toast_play_no_session, Toast.LENGTH_LONG).show();
+            return;
+        }
+        if (!bridge.playUri(song.uri())) {
+            Toast.makeText(this, R.string.toast_play_no_session, Toast.LENGTH_LONG).show();
+            return;
+        }
+
+        Toast.makeText(this, getString(R.string.toast_play_request, song.title),
+                Toast.LENGTH_SHORT).show();
+
+        handler.postDelayed(() -> {
+            String after = MediaBridge.get().title();
+            if (after != null && after.equals(before)) {
+                Toast.makeText(OverlayService.this,
+                        R.string.toast_play_unsupported, Toast.LENGTH_LONG).show();
+            }
+        }, 2200L);
     }
 
     private void applyLayout() {

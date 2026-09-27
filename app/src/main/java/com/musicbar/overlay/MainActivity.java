@@ -36,6 +36,7 @@ import android.widget.Toast;
 public class MainActivity extends Activity {
 
     private static final int REQUEST_NOTIFICATIONS = 100;
+    private static final int REQUEST_LIBRARY = 101;
 
     private static boolean notificationAskDone;
 
@@ -46,6 +47,7 @@ public class MainActivity extends Activity {
     private TextView nlsRow;
     private TextView batteryRow;
     private TextView notificationRow;
+    private TextView libraryRow;
 
     private final Handler ui = new Handler(Looper.getMainLooper());
     private Runnable pendingApply;
@@ -76,6 +78,7 @@ public class MainActivity extends Activity {
         nlsRow = addPermRow(R.string.perm_nls, v -> requestNotificationAccess());
         batteryRow = addPermRow(R.string.perm_batt, v -> requestIgnoreBattery());
         notificationRow = addPermRow(R.string.perm_notif, v -> requestNotificationPermission());
+        libraryRow = addPermRow(R.string.perm_library, v -> requestLibraryPermission());
 
         // ---- start / stop -----------------------------------------------------
         addSection(R.string.sec_run);
@@ -94,6 +97,7 @@ public class MainActivity extends Activity {
             applyLive();
         });
         addNote(R.string.hint_drag);
+        addNote(R.string.hint_library);
         addNote(R.string.hint_poweramp);
 
         // ---- appearance -------------------------------------------------------
@@ -143,6 +147,7 @@ public class MainActivity extends Activity {
         setPermRow(nlsRow, R.string.perm_nls, nls);
         setPermRow(batteryRow, R.string.perm_batt, battery);
         setPermRow(notificationRow, R.string.perm_notif, notification);
+        setPermRow(libraryRow, R.string.perm_library, hasLibraryPermission());
 
         StringBuilder sb = new StringBuilder();
         sb.append(getString(OverlayService.running
@@ -275,6 +280,24 @@ public class MainActivity extends Activity {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS},
                     REQUEST_NOTIFICATIONS);
+        }
+    }
+
+    private boolean hasLibraryPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            return checkSelfPermission(Manifest.permission.READ_MEDIA_AUDIO)
+                    == PackageManager.PERMISSION_GRANTED;
+        }
+        return checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE)
+                == PackageManager.PERMISSION_GRANTED;
+    }
+
+    private void requestLibraryPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            requestPermissions(new String[]{Manifest.permission.READ_MEDIA_AUDIO}, REQUEST_LIBRARY);
+        } else {
+            requestPermissions(new String[]{Manifest.permission.READ_EXTERNAL_STORAGE},
+                    REQUEST_LIBRARY);
         }
     }
 

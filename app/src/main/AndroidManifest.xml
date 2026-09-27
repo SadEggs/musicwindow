@@ -14,6 +14,13 @@
     <!-- Optional autostart after boot (toggle inside the app). -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
+    <!-- Media library browsing (the folder panel). Android 13+ uses the audio
+         scoped permission; older releases fall back to external storage. -->
+    <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
+    <uses-permission
+        android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32" />
+
     <application
         android:allowBackup="false"
         android:icon="@drawable/ic_app"

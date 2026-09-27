@@ -45,6 +45,16 @@ https://github.com/SadEggs/musicwindow/releases/download/v0.4/app-release.apk
 仓库 → **Actions** → 左侧 “Build APK” → 右上 **Run workflow**（或等 push 自动触发）
 → 跑完后在该次运行页面底部 **Artifacts** 下载（是 zip，解压后取 `app-*.apk`）。
 
+### 测试版（含实验功能）
+
+测试版从 `beta` 分支构建，发布时会标记为 **Pre-release**，所以**不会**顶掉稳定版的 Latest 标记。
+
+| 版本 | 内容 | 下载 |
+| --- | --- | --- |
+| v0.5-beta1 | 媒体库面板（点条右端的文件夹图标展开，从条的位置往下伸出，占屏高约 1/3；三列磁贴、先上下后左右；顶部有「上级目录」和关闭叉；点歌由播放器后台切歌，不切出游戏） | https://github.com/SadEggs/musicwindow/releases/download/v0.5-beta1/app-release.apk |
+
+> 测试版需要额外授予「音乐和音频」权限，才能读取音乐文件夹。
+
 ### 改了代码之后怎么重新出 APK
 
 ```powershell
