@@ -56,6 +56,10 @@ public class MediaBridge {
     private boolean sessionsListenerAdded;
     private long rebindRequestedAt;
 
+    private int savedShuffle = PlaybackState.SHUFFLE_MODE_NONE;
+    private int savedRepeat = PlaybackState.REPEAT_MODE_NONE;
+    private boolean hasSavedModes;
+
     private String status = "";
     private Bitmap artCache;
     private String artKey = "";
@@ -352,6 +356,75 @@ public class MediaBridge {
 
     public MediaController controller() {
         return controller;
+    }
+
+    // ----- shuffle / repeat preservation ---------------------------------------------
+
+    /**
+     * Remember the shuffle and repeat modes before asking the player to play one
+     * specific song. A player answers such a request by building a fresh queue, and the
+     * shuffle mode belongs to the queue it just discarded - which is why picking a song
+     * from the panel silently turned Poweramp's shuffle off.
+     */
+    public void snapshotModes() {
+        savedShuffle = PlaybackState.SHUFFLE_MODE_NONE;
+        savedRepeat = PlaybackState.REPEAT_MODE_NONE;
+        hasSavedModes = false;
+        PlaybackState st = playbackState();
+        if (st == null) {
+            return;
+        }
+        savedShuffle = st.getShuffleMode();
+        savedRepeat = st.getRepeatMode();
+        hasSavedModes = true;
+    }
+
+    /** Put the remembered modes back, but only if the player actually changed them. */
+    public void restoreModes(Context ctx) {
+        if (!hasSavedModes) {
+            return;
+        }
+        MediaController c = controller;
+        if (c == null) {
+            return;
+        }
+        hasSavedModes = false;
+        if (!Prefs.keepShuffle(ctx)) {
+            return;
+        }
+        try {
+            PlaybackState st = playbackState();
+            boolean shuffleChanged = st == null || st.getShuffleMode() != savedShuffle;
+            boolean repeatChanged = st == null || st.getRepeatMode() != savedRepeat;
+            if (!shuffleChanged && !repeatChanged) {
+                return;
+            }
+            if (shuffleChanged && savedShuffle != PlaybackState.SHUFFLE_MODE_NONE) {
+                c.getTransportControls().setShuffleMode(savedShuffle);
+            }
+            if (repeatChanged && savedRepeat != PlaybackState.REPEAT_MODE_NONE) {
+                c.getTransportControls().setRepeatMode(savedRepeat);
+            }
+        } catch (Throwable ignored) {
+            // A player that does not implement these simply ignores them.
+        }
+    }
+
+    /** Current shuffle mode, or -1 without a session. Shown on the status page. */
+    public int shuffleMode() {
+        PlaybackState st = playbackState();
+        return st == null ? -1 : st.getShuffleMode();
+    }
+
+    /** Current repeat mode, or -1 without a session. Shown on the status page. */
+    public int repeatMode() {
+        PlaybackState st = playbackState();
+        return st == null ? -1 : st.getRepeatMode();
+    }
+
+    private PlaybackState playbackState() {
+        MediaController c = controller;
+        return c == null ? null : c.getPlaybackState();
     }
 
     public String statusText() {

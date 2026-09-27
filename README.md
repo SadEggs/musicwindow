@@ -53,7 +53,8 @@
 
 | 版本 | 内容 |
 | --- | --- |
-| **v0.9**（最新稳定版） | **修好"更新后检测不到播放器"**（自动重新绑定通知监听 + 一键重新检测）；✕ 改到文件夹图标右边；滑动阈值可在设置里调；切歌提示音可选关闭/仅蓝牙/始终 |
+| **v0.10**（最新稳定版） | **点歌不再关掉随机播放**（自动记住并恢复随机/循环模式）；媒体库面板恢复**从左到右、从上到下**排序 |
+| v0.9 | **修好"更新后检测不到播放器"**（自动重新绑定通知监听 + 一键重新检测）；✕ 改到文件夹图标右边；滑动阈值可在设置里调；切歌提示音可选关闭/仅蓝牙/始终 |
 | v0.8 | 滑动切歌改为「**滑出下一首预览 + 松手确认**」 |
 | v0.7 | 按编号点播（Poweramp）、暂停状态下点歌可用、主界面切换歌曲时不再闪烁消失、媒体库面板 |
 | v0.5 | 钉子（固定位置）按钮、固定签名密钥 |
@@ -131,6 +132,14 @@
 2. **按名称点播**（`playFromSearch`）—— Android Auto / 语音助手用的标准请求。
 3. **按文件点播**（`playFromUri`）—— 直接给出该文件的 MediaStore 地址。
 
+**随机播放模式会被保住**（v0.10 起）：播放器接到"播这一首"的请求时通常会**重建播放队列**，
+而随机播放是跟着队列走的 —— 所以点歌会顺手把随机播放关掉。现在点歌前会先记住
+**随机 + 循环模式**（`PlaybackState.getShuffleMode()` / `getRepeatMode()`），歌曲真正切过去之后
+再通过 `setShuffleMode()` / `setRepeatMode()` 放回去；模式没变就完全不动它。
+设置里的「**点歌时保持随机播放模式**」可以关掉这个行为。
+（状态页会显示播放器上报的 `随机播放=` / `循环模式=`，如果 Poweramp 没上报随机状态，
+那一项会显示"关"，说明它没通过标准接口暴露这个信息。）
+
 **暂停状态下点歌也已修复**：有些播放器（例如 Poweramp）在暂停时收到点播请求，
 会把新歌装进队列**但不开始播放**，旧版本因此误判失败并去试下一种，结果状态被搅乱。
 现在检测到"歌换了但还在暂停"会**自动补一个播放指令**，所以暂停时点歌也能直接唱起来。
@@ -163,7 +172,7 @@ App 状态页底部有诊断信息，出问题时把这段发给我即可：
 | 显示时机 | 仅在有播放/暂停会话时出现 | 彻底停止播放后自动隐藏 |
 | 折叠把手 | 1.6 cm 圆把手 | 点条右端箭头折叠，点把手展开 |
 | 专辑封面 | 默认关闭 | 开启后左侧显示 46dp 缩略图 |
-| 媒体库面板 | 3 列磁贴，占屏高约 1/3 | 先上下后左右排布，长度与主界面一致 |
+| 媒体库面板 | 3 列磁贴，占屏高约 1/3 | **从左到右、从上到下**排布，长度与主界面一致 |
 
 ### 已知限制（重要）
 
@@ -302,7 +311,9 @@ Reset methods, from lightest to heaviest — step 0 is usually enough:
 
 | Version | What is in it |
 | --- | --- |
-| **v0.8** (latest stable) | Swiping now previews the incoming song and only switches when you let go past the threshold; the library button turns into the **✕** in the panel's top right corner |
+| **v0.10** (latest stable) | **Picking a song no longer turns shuffle off** (the shuffle / repeat mode is remembered and put back), and the library panel is ordered **left to right, then top to bottom** again |
+| v0.9 | **Fixes "detects nothing after an update"** (the app asks the system to rebind the listener by itself, plus a one-tap re-check button); the **✕** moved next to the folder button; the swipe threshold became a setting; the track-change tone can be off / Bluetooth only / always |
+| v0.8 | Swiping previews the incoming song and only switches when you let go past the threshold |
 | v0.7 | Play by library id (Poweramp), point-song now works while paused, no more bar flicker when the track changes, media library panel |
 | v0.5 | Pin (lock position) button, fixed signing key |
 | v0.1 – v0.4 | The core bar, swipe to change track, hairline progress bar |
@@ -381,6 +392,13 @@ attempt whether the track really changed:
    stops on the first exact title match — so a huge library can never hang the bar.
 2. **By name** (`playFromSearch`) — the standard request Android Auto and voice assistants use.
 3. **By file** (`playFromUri`) — the file's MediaStore URI.
+
+**The shuffle mode is preserved** (v0.10 and later): a player usually answers "play this one song" by
+building a fresh queue, and shuffle belongs to the queue it discarded — which is why picking a song
+used to turn shuffle off. The app now remembers the **shuffle and repeat** modes
+(`PlaybackState.getShuffleMode()` / `getRepeatMode()`) before the request and puts them back with
+`setShuffleMode()` / `setRepeatMode()` once the song has really changed; if nothing changed, it does
+nothing at all. The setting "Keep shuffle when picking songs" turns this off.
 
 **Point-song while paused is fixed**: some players (Poweramp among them) accept the request, load
 the new track, and then just sit there because playback was paused — older builds misread that as a

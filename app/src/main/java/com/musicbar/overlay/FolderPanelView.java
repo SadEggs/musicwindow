@@ -16,7 +16,7 @@ import java.util.List;
 
 /**
  * Explorer style browser that unfolds out of the bar. Tiles are laid out in
- * three columns, filled top to bottom first and then left to right, with folders
+ * three columns, filled left to right first and then top to bottom, with folders
  * ahead of songs. The header carries the parent-directory button, the current
  * path and the close cross.
  */
@@ -170,8 +170,8 @@ public class FolderPanelView extends LinearLayout {
                 LinearLayout rowBox = new LinearLayout(ctx);
                 rowBox.setOrientation(HORIZONTAL);
                 for (int column = 0; column < COLUMNS; column++) {
-                    // Top to bottom inside a column, then on to the next column.
-                    int index = page * perPage + column * rows + row;
+                    // Left to right inside a row, then on to the next row.
+                    int index = page * perPage + row * COLUMNS + column;
                     View cell = index < total ? makeCell(items.get(index)) : new View(ctx);
                     rowBox.addView(cell, new LayoutParams(0, rowHeightPx, 1f));
                 }
