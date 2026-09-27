@@ -34,7 +34,6 @@ public final class Prefs {
     public static final String K_PINNED = "pinned";
     public static final String K_SWIPE_PCT = "swipe_pct";
     public static final String K_BEEP_MODE = "beep_mode";
-    public static final String K_KEEP_SHUFFLE = "keep_shuffle";
 
     public static final String EDGE_TOP = "top";
     public static final String EDGE_BOTTOM = "bottom";
@@ -134,15 +133,6 @@ public final class Prefs {
     public static int beepMode(Context c) {
         int v = sp(c).getInt(K_BEEP_MODE, 1);
         return Math.max(0, Math.min(2, v));
-    }
-
-    /**
-     * Put the player's shuffle / repeat mode back after a panel tap. Playing one
-     * specific song makes the player build a fresh queue, and the old shuffle mode
-     * goes with the queue it just discarded.
-     */
-    public static boolean keepShuffle(Context c) {
-        return sp(c).getBoolean(K_KEEP_SHUFFLE, true);
     }
 
     public static int customX(Context c) {

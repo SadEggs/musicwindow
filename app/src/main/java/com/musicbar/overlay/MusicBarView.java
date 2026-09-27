@@ -11,6 +11,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.text.TextUtils;
 import android.view.Gravity;
+import android.view.HapticFeedbackConstants;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewConfiguration;
@@ -77,6 +78,7 @@ public class MusicBarView extends LinearLayout {
 
     private static final long LONG_PRESS_MS = 320L;
     private static final int SWIPE_MIN_DP = 56;
+    private static final int SWIPE_START_DP = 16;
 
     private final Handler ui = new Handler(Looper.getMainLooper());
 
@@ -133,6 +135,9 @@ public class MusicBarView extends LinearLayout {
         textStack = new FrameLayout(ctx);
         textStack.setClipChildren(true);
         textStack.setClipToPadding(true);
+        // The swipe zone is outlined so it is obvious where the gesture works.
+        textStack.setBackgroundResource(R.drawable.bg_swipe_area);
+        textStack.setPadding(dp(6), dp(3), dp(6), dp(3));
         row.addView(textStack, new LayoutParams(0, LayoutParams.WRAP_CONTENT, 1f));
 
         texts = new LinearLayout(ctx);
@@ -515,7 +520,10 @@ public class MusicBarView extends LinearLayout {
                         }
                         return true;
                     }
-                    if (Math.abs(dx) > slop * 2f && Math.abs(dx) > Math.abs(dy) * 1.5f) {
+                    // A swipe starts only after a deliberate sideways move, so a slightly
+                    // sloppy tap is still read as a tap.
+                    if (Math.abs(dx) > Math.max(slop * 3f, dp(SWIPE_START_DP))
+                            && Math.abs(dx) > Math.abs(dy) * 1.5f) {
                         // Clearly sideways: never let this become a window drag.
                         ui.removeCallbacks(longPressRunnable);
                         if (collapsed) {
@@ -611,6 +619,7 @@ public class MusicBarView extends LinearLayout {
         String incoming = bridge == null ? "" : bridge.queueItemTitle(next ? 1 : -1);
         String label = ctx.getString(next ? R.string.bar_swipe_next : R.string.bar_swipe_prev);
 
+        textStack.setBackgroundResource(R.drawable.bg_swipe_area_active);
         previewTitle.setTextSize(compact ? 13f : 16f);
         previewHint.setTextSize(compact ? 9f : 12f);
         previewTitle.setText(TextUtils.isEmpty(incoming) ? label : incoming);
@@ -644,6 +653,7 @@ public class MusicBarView extends LinearLayout {
 
     private void endSwipe(float dx) {
         swipeMode = false;
+        textStack.setBackgroundResource(R.drawable.bg_swipe_area);
         int width = stackWidth();
         boolean next = dx < 0f;
 
@@ -690,6 +700,7 @@ public class MusicBarView extends LinearLayout {
 
     private void cancelSwipe() {
         swipeMode = false;
+        textStack.setBackgroundResource(R.drawable.bg_swipe_area);
         texts.animate().translationX(0f).alpha(1f).setDuration(120L).start();
         previewBox.setTranslationX(0f);
         previewBox.setVisibility(INVISIBLE);
@@ -703,12 +714,23 @@ public class MusicBarView extends LinearLayout {
         button.setPadding(dp(6), dp(6), dp(6), dp(6));
         button.setContentDescription(getContext().getString(contentDescRes));
         button.setSoundEffectsEnabled(false);
+        // Silent, but a light tick confirms the press so the button never feels dead.
+        button.setOnTouchListener((view, event) -> {
+            if (event.getActionMasked() == MotionEvent.ACTION_DOWN) {
+                view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
+            }
+            return false;
+        });
         return button;
     }
 
+    /**
+     * Buttons take the whole height of the bar and a finger-sized width, so a tap
+     * lands even on a thin bar or when the tablet is held at arm's length.
+     */
     private LayoutParams buttonParams(boolean primary) {
-        int size = primary ? dp(46) : dp(40);
-        LayoutParams params = new LayoutParams(size, size);
+        LayoutParams params = new LayoutParams(
+                dp(primary ? 54 : 48), LayoutParams.MATCH_PARENT);
         params.leftMargin = dp(4);
         return params;
     }

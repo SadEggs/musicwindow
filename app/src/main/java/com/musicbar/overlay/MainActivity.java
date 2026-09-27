@@ -6,7 +6,6 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
-import android.media.session.PlaybackState;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -128,7 +127,6 @@ public class MainActivity extends Activity {
         addSlider(R.string.set_swipe_pct, Prefs.K_SWIPE_PCT, 10, 90, 40, "%");
         addChoice(R.string.set_beep, Prefs.K_BEEP_MODE, Beep.MODE_BLUETOOTH,
                 new int[]{R.string.beep_off, R.string.beep_bt, R.string.beep_always});
-        addCheckBox(R.string.set_keep_shuffle, Prefs.K_KEEP_SHUFFLE, true);
         addNote(R.string.set_collapse_hint);
 
         // ---- advanced ---------------------------------------------------------
@@ -209,32 +207,7 @@ public class MainActivity extends Activity {
         }
         return getString(R.string.diag_listener) + "=" + yesNo(bridge.listenerConnected())
                 + " " + getString(R.string.diag_sessions) + "=" + sessions
-                + " " + getString(R.string.diag_bt) + "=" + yesNo(Beep.bluetoothConnected(this))
-                + " " + getString(R.string.diag_shuffle) + "=" + modeText(bridge.shuffleMode(), true)
-                + " " + getString(R.string.diag_repeat) + "=" + modeText(bridge.repeatMode(), false);
-    }
-
-    /** Names the shuffle / repeat mode the player reports, for the status page. */
-    private String modeText(int mode, boolean shuffle) {
-        if (mode < 0) {
-            return getString(R.string.diag_none);
-        }
-        if (shuffle) {
-            if (mode == PlaybackState.SHUFFLE_MODE_ALL) {
-                return getString(R.string.mode_shuffle_all);
-            }
-            if (mode == PlaybackState.SHUFFLE_MODE_GROUP) {
-                return getString(R.string.mode_shuffle_group);
-            }
-            return getString(R.string.mode_off);
-        }
-        if (mode == PlaybackState.REPEAT_MODE_ONE) {
-            return getString(R.string.mode_repeat_one);
-        }
-        if (mode == PlaybackState.REPEAT_MODE_ALL || mode == PlaybackState.REPEAT_MODE_GROUP) {
-            return getString(R.string.mode_repeat_all);
-        }
-        return getString(R.string.mode_off);
+                + " " + getString(R.string.diag_bt) + "=" + yesNo(Beep.bluetoothConnected(this));
     }
 
     private String playSupportText() {
