@@ -65,11 +65,45 @@ jobs:
       - name: Point Gradle at the SDK
         run: echo "sdk.dir=$ANDROID_SDK_ROOT" > local.properties
 
+      # One signing identity for every build, created once and then reused, so a
+      # newer APK installs straight over the previous one. Before this, each run
+      # generated a fresh throwaway debug key and Android rejected the update with
+      # "signatures do not match", forcing an uninstall each time.
+      # The key lives in the repo as base64 text (app/keystore.b64).
+      - name: Ensure the fixed signing key
+        run: |
+          set -e
+          if [ -f app/keystore.b64 ]; then
+            echo "Reusing the committed signing key."
+          else
+            echo "No signing key yet: generating one and committing it."
+            keytool -genkeypair \
+              -keystore app/release.keystore \
+              -alias musicbar \
+              -keyalg RSA -keysize 2048 -validity 10950 \
+              -storepass musicbar123 -keypass musicbar123 \
+              -dname "CN=MusicBar, O=SadEggs, C=CN"
+            base64 -w0 app/release.keystore > app/keystore.b64
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add -f app/keystore.b64
+            git commit -q -m "chore: commit the fixed signing key so updates install in place [skip ci]"
+            git push
+          fi
+          base64 -d app/keystore.b64 > app/release.keystore
+          echo "Keystore ready: $(ls -l app/release.keystore | awk '{print $5}') bytes"
+
       - name: Build debug APK
         run: gradle assembleDebug --no-daemon --stacktrace
 
-      - name: Build release APK (debug-signed)
+      - name: Build release APK
         run: gradle assembleRelease --no-daemon --stacktrace
+
+      - name: Show the signing certificate
+        run: |
+          APK=$(ls app/build/outputs/apk/release/*.apk | head -1)
+          "$ANDROID_SDK_ROOT/build-tools/35.0.0/apksigner" verify --print-certs "$APK" \
+            | grep -Ei 'Signer #1 certificate (DN|SHA-256)' || true
 
       - name: Show what was produced
         run: find app/build/outputs -name '*.apk' -exec ls -lh {} \;

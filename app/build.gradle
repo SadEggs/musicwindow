@@ -2,6 +2,16 @@ plugins {
     id 'com.android.application'
 }
 
+// A single, fixed signing identity for every build. It is generated once by CI
+// and committed as base64 text (app/keystore.b64); the build workflow decodes it
+// to app/release.keystore before Gradle runs.
+//
+// Why this matters: CI runners are brand new machines, so the "debug" key was
+// regenerated on every run. Each APK therefore had a different certificate and
+// Android refused to install a new version over the old one ("signatures do not
+// match"), forcing an uninstall every time. One shared key fixes that.
+def hasFixedKey = file('release.keystore').exists()
+
 android {
     namespace 'com.musicbar.overlay'
     compileSdk 35
@@ -14,15 +24,26 @@ android {
         versionName '0.4'
     }
 
+    signingConfigs {
+        if (hasFixedKey) {
+            fixed {
+                storeFile file('release.keystore')
+                storePassword 'musicbar123'
+                keyAlias 'musicbar'
+                keyPassword 'musicbar123'
+            }
+        }
+    }
+
     buildTypes {
         debug {
             // Sideload-friendly: debug builds are auto-signed with the debug keystore.
         }
         release {
             minifyEnabled false
-            // Signed with the debug key so you can install it directly.
-            // Replace with your own keystore later if you want.
-            signingConfig signingConfigs.debug
+            // The fixed key when present, otherwise fall back to the debug key so a
+            // local build still works.
+            signingConfig hasFixedKey ? signingConfigs.fixed : signingConfigs.debug
         }
     }
 

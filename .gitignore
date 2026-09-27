@@ -8,3 +8,7 @@ local.properties
 captures/
 .externalNativeBuild/
 .cxx/
+
+# The decoded signing key is rebuilt from app/keystore.b64 on every build, so the
+# binary copy is never committed (the base64 text file is, on purpose).
+app/release.keystore
