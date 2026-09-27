@@ -86,12 +86,12 @@ public class MusicBarView extends LinearLayout {
         // ---- full layout -------------------------------------------------------
         fullBox = new LinearLayout(ctx);
         fullBox.setOrientation(VERTICAL);
-        addView(fullBox, new LayoutParams(MATCH_PARENT, MATCH_PARENT));
+        addView(fullBox, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
 
         LinearLayout row = new LinearLayout(ctx);
         row.setOrientation(HORIZONTAL);
         row.setGravity(Gravity.CENTER_VERTICAL);
-        fullBox.addView(row, new LayoutParams(MATCH_PARENT, 0, 1f));
+        fullBox.addView(row, new LayoutParams(LayoutParams.MATCH_PARENT, 0, 1f));
 
         artView = new ImageView(ctx);
         artView.setScaleType(ImageView.ScaleType.CENTER_CROP);
@@ -101,7 +101,7 @@ public class MusicBarView extends LinearLayout {
 
         LinearLayout texts = new LinearLayout(ctx);
         texts.setOrientation(VERTICAL);
-        row.addView(texts, new LayoutParams(0, WRAP_CONTENT, 1f));
+        row.addView(texts, new LayoutParams(0, LayoutParams.WRAP_CONTENT, 1f));
 
         titleView = new TextView(ctx);
         titleView.setTextColor(0xFFFFFFFF);
@@ -112,14 +112,14 @@ public class MusicBarView extends LinearLayout {
         titleView.setMarqueeRepeatLimit(-1);
         titleView.setHorizontallyScrolling(true);
         titleView.setSelected(true);
-        texts.addView(titleView, new LayoutParams(MATCH_PARENT, WRAP_CONTENT));
+        texts.addView(titleView, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
 
         artistView = new TextView(ctx);
         artistView.setTextColor(0xFFB0BEC5);
         artistView.setTextSize(12f);
         artistView.setSingleLine(true);
         artistView.setEllipsize(TextUtils.TruncateAt.END);
-        LayoutParams artistParams = new LayoutParams(MATCH_PARENT, WRAP_CONTENT);
+        LayoutParams artistParams = new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT);
         artistParams.topMargin = dp(2);
         texts.addView(artistView, artistParams);
 
@@ -154,12 +154,12 @@ public class MusicBarView extends LinearLayout {
         LinearLayout progressRow = new LinearLayout(ctx);
         progressRow.setOrientation(HORIZONTAL);
         progressRow.setGravity(Gravity.CENTER_VERTICAL);
-        LayoutParams progressRowParams = new LayoutParams(MATCH_PARENT, WRAP_CONTENT);
+        LayoutParams progressRowParams = new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT);
         progressRowParams.topMargin = dp(6);
         fullBox.addView(progressRow, progressRowParams);
 
         curView = makeTime(Gravity.END);
-        progressRow.addView(curView, new LayoutParams(dp(44), WRAP_CONTENT));
+        progressRow.addView(curView, new LayoutParams(dp(44), LayoutParams.WRAP_CONTENT));
 
         seekBar = new SeekBar(ctx);
         seekBar.setMax(1000);
@@ -171,14 +171,14 @@ public class MusicBarView extends LinearLayout {
         progressRow.addView(seekBar, new LayoutParams(0, dp(22), 1f));
 
         totalView = makeTime(Gravity.START);
-        progressRow.addView(totalView, new LayoutParams(dp(44), WRAP_CONTENT));
+        progressRow.addView(totalView, new LayoutParams(dp(44), LayoutParams.WRAP_CONTENT));
 
         // ---- collapsed handle --------------------------------------------------
         handleBox = new FrameLayout(ctx);
         handleBox.setBackgroundResource(R.drawable.bg_handle);
         handleBox.setVisibility(GONE);
         handleBox.setContentDescription(ctx.getString(R.string.cd_expand));
-        addView(handleBox, new LayoutParams(MATCH_PARENT, MATCH_PARENT));
+        addView(handleBox, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
 
         handleIcon = new ImageView(ctx);
         handleIcon.setScaleType(ImageView.ScaleType.CENTER_CROP);
