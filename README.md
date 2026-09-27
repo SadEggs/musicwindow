@@ -27,48 +27,52 @@
 
 本机没有 JDK / Android SDK，也不需要装——全部在 GitHub 上编译。
 
-### 一次性准备
+### 仓库已就绪
 
-```powershell
-cd "D:\AI Program\Workspace\FloatingMusicBar"
-git init -b main
-git add .
-git commit -m "FloatingMusicBar v1.0"
-```
-
-然后在 GitHub 网页上新建一个**空仓库**（不要勾选 README），拿到地址后：
-
-```powershell
-git remote add origin https://github.com/<你的用户名>/<仓库名>.git
-git push -u origin main
-```
+代码已经推送到 **https://github.com/SadEggs/musicwindow**（分支 `main`），
+工作流 `.github/workflows/build.yml` 已在仓库里，不需要再做任何初始化。
 
 ### 拿到 APK（两条路，任选）
 
 **A. 直接下载 APK（最省事，推荐）**
 
-```powershell
-git tag v1.0
-git push origin v1.0
-```
-
-推送 tag 后，Actions 会自动编译，并在仓库的 **Releases** 页面附上两个 APK，
-点一下就能直接下 APK 文件（不是 zip）。
+打开 https://github.com/SadEggs/musicwindow/releases —— 直接下 `app-release.apk`。
+平板上用浏览器点这个链接也能直接下：
+https://github.com/SadEggs/musicwindow/releases/download/v1.0/app-release.apk
 
 **B. 从 Actions 构件下载**
 
-仓库 → **Actions** 标签 → 左侧 “Build APK” → 右上 **Run workflow**（或直接等 push 触发）
-→ 跑完后在该次运行页面底部 **Artifacts** 下载 `FloatingMusicBar-debug`（是 zip，
-解压后里面的 `app-debug.apk` 就是要装的文件）。
+仓库 → **Actions** → 左侧 “Build APK” → 右上 **Run workflow**（或等 push 自动触发）
+→ 跑完后在该次运行页面底部 **Artifacts** 下载（是 zip，解压后取 `app-*.apk`）。
 
-> 首次编译约 3~5 分钟（要下 Gradle 和 SDK）。
-> 工作流文件：`.github/workflows/build.yml`
+### 改了代码之后怎么重新出 APK
 
-### 出问题了？
+```powershell
+cd "D:\AI Program\Workspace\FloatingMusicBar"
+git add -A
+git commit -m "你的改动"
+git push origin main
 
-- Android Studio 版本较老、想本地编译：把根目录 `build.gradle` 里的 AGP 版本
-  `8.7.3` 调低（如 `8.5.2`），`gradle.properties` 不用动。
-- 想看编译日志：Actions 页面点进那次运行，展开 `Build debug APK` 步骤。
+# 需要生成带 APK 附件的 Release 时：
+git tag -f v1.1
+git push -f origin v1.1
+```
+
+> 一次完整编译约 1.5 分钟。debug 与 release 两个 APK 都用 debug 密钥签名，都能直接安装。
+
+### 踩过的坑（别再踩）
+
+1. **不要用 `android-actions/setup-android@v3`**。它会去安装早已被 Google 下架的旧包
+   `tools`，在 ubuntu-24.04 runner 上直接报 `Failed to find package 'tools'` 把整条流水线搞挂。
+   现在 workflow 改成自己下载 cmdline-tools，再装 `platforms;android-35` + `build-tools;35.0.0`。
+2. **推 `.github/workflows/` 下的文件，token 必须有 `Workflows` 权限**。只给 Contents 会被拒绝：
+   `refusing to allow a Personal Access Token to create or update workflow`。
+   建议用 fine-grained token，仓库限定本仓库，权限勾 Contents + Workflows，用完即吊销。
+3. **某些环境里本机 git 的 Schannel 不可用**（`schannel: AcquireCredentialsHandle failed`），
+   推送时加 `-c http.sslBackend=openssl` 即可绕过。
+4. **自定义 View 里不要写裸的 `MATCH_PARENT` / `WRAP_CONTENT`**。这两个常量属于
+   `ViewGroup.LayoutParams` 这个嵌套类，Java 不会把嵌套类成员继承进子类作用域，
+   必须写 `LayoutParams.MATCH_PARENT`（本项目第一次编译就栽在这里）。
 
 ---
 
