@@ -32,6 +32,8 @@ public final class Prefs {
     public static final String K_AUTOSTART = "autostart";
     public static final String K_HANDLE_CM = "handle_cm";
     public static final String K_PINNED = "pinned";
+    public static final String K_SWIPE_PCT = "swipe_pct";
+    public static final String K_BEEP_MODE = "beep_mode";
 
     public static final String EDGE_TOP = "top";
     public static final String EDGE_BOTTOM = "bottom";
@@ -116,6 +118,21 @@ public final class Prefs {
 
     public static boolean pinned(Context c) {
         return sp(c).getBoolean(K_PINNED, false);
+    }
+
+    /**
+     * How far a swipe must travel, as a percentage of the song text area, before
+     * letting go switches the track. Lower is twitchier, higher needs a longer slide.
+     */
+    public static int swipePct(Context c) {
+        int v = sp(c).getInt(K_SWIPE_PCT, 40);
+        return Math.max(10, Math.min(90, v));
+    }
+
+    /** 0 = never beep on a track change, 1 = only over Bluetooth, 2 = always. */
+    public static int beepMode(Context c) {
+        int v = sp(c).getInt(K_BEEP_MODE, 1);
+        return Math.max(0, Math.min(2, v));
     }
 
     public static int customX(Context c) {

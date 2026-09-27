@@ -88,6 +88,15 @@ public class MainActivity extends Activity {
         addSection(R.string.sec_run);
         addButton(R.string.btn_start, v -> startOverlay());
         addButton(R.string.btn_stop, v -> stopOverlay());
+        addButton(R.string.btn_recheck, v -> {
+            // Ask the system to bind the notification listener again and re-read the
+            // session list: the one-tap cure for "detects nothing after an update".
+            MediaBridge.get().requestListenerRebind();
+            MediaBridge.get().requestRefresh();
+            refreshStatus();
+            Toast.makeText(this, R.string.toast_recheck, Toast.LENGTH_SHORT).show();
+        });
+        addNote(R.string.hint_recheck);
 
         // ---- size -------------------------------------------------------------
         addSection(R.string.sec_size);
@@ -115,6 +124,9 @@ public class MainActivity extends Activity {
         addCheckBox(R.string.set_show_time, Prefs.K_SHOW_TIME, true);
         addCheckBox(R.string.set_show_art, Prefs.K_SHOW_ART, false);
         addCheckBox(R.string.set_autostart, Prefs.K_AUTOSTART, true);
+        addSlider(R.string.set_swipe_pct, Prefs.K_SWIPE_PCT, 10, 90, 40, "%");
+        addChoice(R.string.set_beep, Prefs.K_BEEP_MODE, Beep.MODE_BLUETOOTH,
+                new int[]{R.string.beep_off, R.string.beep_bt, R.string.beep_always});
         addNote(R.string.set_collapse_hint);
 
         // ---- advanced ---------------------------------------------------------
@@ -167,12 +179,35 @@ public class MainActivity extends Activity {
             // media browser service at all.
             sb.append('\n').append(playSupportText());
             sb.append('\n').append(browserServicesText());
+            sb.append('\n').append(linkDiagText());
         }
         statusView.setText(sb.toString());
     }
 
     private String yesNo(boolean value) {
         return getString(value ? R.string.diag_yes : R.string.diag_no);
+    }
+
+    /**
+     * Why the bar may be detecting nothing: whether the notification listener is
+     * really connected in this process, how many media sessions the system reports,
+     * and whether audio is on Bluetooth right now - which is what decides whether a
+     * track change makes a sound.
+     */
+    private String linkDiagText() {
+        MediaBridge bridge = MediaBridge.get();
+        int count = bridge.sessionCount();
+        String sessions;
+        if (count == -1) {
+            sessions = getString(R.string.diag_no_nls);
+        } else if (count == -2) {
+            sessions = getString(R.string.diag_refused);
+        } else {
+            sessions = String.valueOf(count);
+        }
+        return getString(R.string.diag_listener) + "=" + yesNo(bridge.listenerConnected())
+                + " " + getString(R.string.diag_sessions) + "=" + sessions
+                + " " + getString(R.string.diag_bt) + "=" + yesNo(Beep.bluetoothConnected(this));
     }
 
     private String playSupportText() {
@@ -405,6 +440,34 @@ public class MainActivity extends Activity {
             applyLive();
         });
         root.addView(box);
+    }
+
+    /** A small radio picker for settings that offer a few named choices. */
+    private void addChoice(int labelRes, String key, int def, int[] valueRes) {
+        TextView label = new TextView(this);
+        label.setTextSize(14f);
+        label.setText(labelRes);
+        root.addView(label);
+
+        RadioGroup group = new RadioGroup(this);
+        group.setOrientation(RadioGroup.HORIZONTAL);
+        int current = sp.getInt(key, def);
+        for (int i = 0; i < valueRes.length; i++) {
+            RadioButton button = new RadioButton(this);
+            button.setText(valueRes[i]);
+            button.setTextSize(13f);
+            button.setId(100 + i);
+            button.setChecked(i == current);
+            final int value = i;
+            button.setOnCheckedChangeListener((view, checked) -> {
+                if (checked) {
+                    sp.edit().putInt(key, value).apply();
+                    applyLive();
+                }
+            });
+            group.addView(button);
+        }
+        root.addView(group);
     }
 
     private void addSlider(int labelRes, String key, int min, int max, int def, String suffix) {

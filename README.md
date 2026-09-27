@@ -26,14 +26,18 @@
 不要急着认为新版本坏了。**
 
 原因是 Android 系统本身的行为：**App 更新后，系统会解绑该 App 的「通知使用权」
-（`NotificationListenerService`）**，于是系统不再把播放器的媒体会话交给它 ——
-悬浮条自然"什么都检测不到"。这与本 App 的代码无关，全新安装一般不会遇到，**主要出现在覆盖更新时**。
+（`NotificationListenerService`）**，而系统不一定马上重新绑定 —— 悬浮条于是"什么都检测不到"。
+旧版本把这种情况误判成"没有授权"，只能靠清除数据恢复。
+
+**v0.9 起已经修好**：App 会自己请系统重新绑定（`requestRebind`），并且在没有会话时持续自动重试，
+正常情况下更新完直接就能用。检测不到时，先点 App 里的「重新检测播放器」按钮即可。
 
 重置办法（从轻到重，第 1 步通常就够了）：
 
 | 顺序 | 做法 | 影响 |
 | --- | --- | --- |
-| 1 | 设置 → 通知使用权（通知访问）→ 把「音乐悬浮条」**关掉，再打开** | 最轻，**不丢任何设置** |
+| 0 | App 里点「**重新检测播放器**」（v0.9 起） | 最轻，**不丢任何设置**，App 请系统重新绑定通知监听 |
+| 1 | 设置 → 通知使用权（通知访问）→ 把「音乐悬浮条」**关掉，再打开** | 轻，不丢任何设置 |
 | 2 | 重启平板 | 轻，不丢设置 |
 | 3 | 应用信息 → 存储 → **清除数据** | 最彻底；会重置厚度/位置/透明度等设置，之后需要**重新授权全部权限** |
 
@@ -49,7 +53,8 @@
 
 | 版本 | 内容 |
 | --- | --- |
-| **v0.8**（最新稳定版） | 滑动切歌改为「**滑出下一首预览 + 松手确认**」；媒体库面板展开后右端按钮变成右上角的 **✕** |
+| **v0.9**（最新稳定版） | **修好"更新后检测不到播放器"**（自动重新绑定通知监听 + 一键重新检测）；✕ 改到文件夹图标右边；滑动阈值可在设置里调；切歌提示音可选关闭/仅蓝牙/始终 |
+| v0.8 | 滑动切歌改为「**滑出下一首预览 + 松手确认**」 |
 | v0.7 | 按编号点播（Poweramp）、暂停状态下点歌可用、主界面切换歌曲时不再闪烁消失、媒体库面板 |
 | v0.5 | 钉子（固定位置）按钮、固定签名密钥 |
 | v0.1 ~ v0.4 | 悬浮条基础功能、滑动切歌、细线进度条 |
@@ -99,13 +104,16 @@
 ### 日常操作
 
 - **向左滑动条身**：下一首 ／ **向右滑动**：上一曲 —— 滑动时会把**下一首的曲名滑进来预览**
-  （副标题显示「继续滑动 / 松手切换」），**滑过约 30% 松手才真正切歌**；松手太早会自动弹回、歌曲不变。
-  这样在不固定（可拖动）状态下也能一眼分清"我在切歌"还是"我在移条"。
+  （副标题显示「继续滑动 / 松手切换」），**滑过设定阈值（默认 40%，设置里可调）松手才真正切歌**；
+  松手太早会自动弹回、歌曲不变。这样在不固定（可拖动）状态下也能一眼分清"我在切歌"还是"我在移条"。
+- **切歌提示音**：默认**只在蓝牙音频时**响一声（外放静音），设置里可选「关闭 / 仅蓝牙 / 始终」。
+  悬浮条和面板上的按钮都关掉了系统"触摸提示音"，所以外放时**任何操作都不会有提示音**。
+  （若蓝牙时还听到不同的"嘟嘟"声，那是耳机自己在响应 AVRCP 切歌，App 无法控制。）
 - **单击条身文字区**：播放 / 暂停
 - **长按条身后拖动**：挪到任意位置（松手后自动记住）
 - **点钉子按钮**：固定 / 取消固定。钉住后条**完全不能移动**（长按拖动也失效），图标变琥珀色，避免游戏中误碰挪走。
-- **点右端文件夹图标**：展开 / 收起媒体库面板。**面板展开时该按钮会变成右上角的 ✕**，
-  点它就关闭面板（面板头部也有一个 ✕）。（**长按**该图标仍是折叠成小把手）
+- **点右端文件夹图标**：展开 / 收起媒体库面板。**面板展开时它右边会多出一个 ✕ 按钮**，
+  点它就关闭面板（面板头部也有一个 ✕）。（**长按**文件夹图标仍是折叠成小把手）
 - **点小把手**：展开回横条
 - **拖动中间的细线**：跳转进度（细线上的圆点就是当前位置）
 - 进度显示是「一根 2px 细线 + 一个圆点」：`12:34 . . . . o . . . . 45:07`，没有醒目的色块。
@@ -270,13 +278,17 @@ notification listener access (`NotificationListenerService`)**, so it stops hand
 media session to the app. A fresh install is normally unaffected; this shows up when installing
 over an older version.
 
-Reset methods, from lightest to heaviest — step 1 is usually enough:
+Reset methods, from lightest to heaviest — step 0 is usually enough:
 
 | Order | What to do | Impact |
 | --- | --- | --- |
-| 1 | Settings → Notification access → turn **off**, then **on** again for FloatingMusicBar | Lightest, **keeps all your settings** |
+| 0 | Tap **"Re-check player"** in the app (v0.9 and later) | Lightest, **keeps all your settings**; the app asks the system to bind the listener again |
+| 1 | Settings → Notification access → turn **off**, then **on** again for FloatingMusicBar | Light, keeps every setting |
 | 2 | Reboot the tablet | Light, keeps settings |
 | 3 | App info → Storage → **Clear data** | Heaviest; resets thickness/position/opacity and you must **grant every permission again** |
+
+> v0.9 fixes this properly: the app asks the system to rebind the listener by itself and keeps
+> retrying while it finds no session, so an update normally just works.
 
 > The same reset also fixes: the status page keeps asking for notification access even though it is
 > granted, and a bar that appears but never updates its title or progress.
@@ -341,14 +353,18 @@ Then tap **Start** in the app.
 
 - **Swipe left / right** on the bar: next / previous track. While you swipe, the incoming song's
   title slides in with a "keep sliding / let go to switch" hint, and the switch only happens if you
-  release past roughly 30% of the width - release earlier and everything springs back with the song
-  unchanged. That makes it obvious, even with the bar unpinned and draggable, whether a gesture is
-  changing the song or moving the bar.
+  release past the threshold (40% by default, adjustable in the settings) - release earlier and
+  everything springs back with the song unchanged. That makes it obvious, even with the bar unpinned
+  and draggable, whether a gesture is changing the song or moving the bar.
+- **Track-change tone**: by default it only beeps **when audio is on Bluetooth**, so the tablet
+  speaker stays silent; the setting offers off / Bluetooth only / always. Sound effects are switched
+  off on the bar and the panel, so no system touch sound is heard either. A headset that beeps on its
+  own when the track changes does so from its own firmware and cannot be controlled by any app.
 - **Tap the title area**: play / pause.
 - **Long-press, then drag**: move it anywhere; the position is remembered.
 - **Pin button**: locks the position so it cannot be moved by accident (the icon turns amber).
-- **Folder button**: unfold / fold the library panel. While the panel is open this button becomes
-  the **✕** that closes it. **Long-press** it to collapse the bar instead.
+- **Folder button**: unfold / fold the library panel. While the panel is open a **✕** appears just to
+  its right, to close the panel again. **Long-press** the folder button to collapse the bar instead.
 - **Drag the hairline**: seek; the dot on the line is the current position.
 - Progress is drawn as a 2px hairline with a dot: `12:34 . . . . o . . . . 45:07`.
 
