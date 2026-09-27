@@ -36,6 +36,14 @@ public final class Prefs {
     public static final String EDGE_BOTTOM = "bottom";
     public static final String DEFAULT_PKG = "com.maxmpz.audioplayer";
 
+    /**
+     * Smallest usable on-screen footprint. Anything thinner would clip the inner
+     * controls, so both the service (when laying out) and the settings page
+     * (when showing the hint) use these same values.
+     */
+    public static final float MIN_BAR_DP = 32f;
+    public static final float MIN_HANDLE_DP = 28f;
+
     private Prefs() {
     }
 

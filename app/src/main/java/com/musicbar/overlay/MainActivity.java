@@ -8,9 +8,14 @@ import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.os.PowerManager;
 import android.provider.Settings;
+import android.text.Editable;
 import android.text.InputType;
+import android.text.TextWatcher;
+import android.util.DisplayMetrics;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
@@ -41,6 +46,9 @@ public class MainActivity extends Activity {
     private TextView nlsRow;
     private TextView batteryRow;
     private TextView notificationRow;
+
+    private final Handler ui = new Handler(Looper.getMainLooper());
+    private Runnable pendingApply;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -363,31 +371,135 @@ public class MainActivity extends Activity {
         root.addView(bar);
     }
 
+    /**
+     * Tolerant number parser. Accepts full-width digits and treats a Chinese or
+     * ASCII comma as the decimal point, so a Chinese IME cannot silently turn
+     * "2.5" into something that fails to parse.
+     */
+    private static Float parseNumber(String raw) {
+        if (raw == null) {
+            return null;
+        }
+        StringBuilder sb = new StringBuilder();
+        boolean dot = false;
+        for (int i = 0; i < raw.length(); i++) {
+            char ch = raw.charAt(i);
+            if (ch >= '0' && ch <= '9') {
+                sb.append(ch);
+            } else if (ch >= '\uFF10' && ch <= '\uFF19') {
+                sb.append((char) ('0' + (ch - '\uFF10')));
+            } else if (ch == '.' || ch == ',' || ch == '\uFF0E' || ch == '\uFF0C') {
+                if (!dot) {
+                    sb.append('.');
+                    dot = true;
+                }
+            }
+        }
+        if (sb.length() == 0) {
+            return null;
+        }
+        try {
+            return Float.valueOf(sb.toString());
+        } catch (Throwable t) {
+            return null;
+        }
+    }
+
+    private static String formatFloat(float value) {
+        if (value == Math.round(value)) {
+            return String.valueOf((int) Math.round(value));
+        }
+        return String.valueOf(value);
+    }
+
+    /** Rebuild the overlay a moment after typing stops, so it visibly reacts. */
+    private void applyLiveDebounced() {
+        if (pendingApply != null) {
+            ui.removeCallbacks(pendingApply);
+        }
+        pendingApply = () -> {
+            pendingApply = null;
+            applyLive();
+        };
+        ui.postDelayed(pendingApply, 350L);
+    }
+
+    /**
+     * Numeric input field. The value is saved on EVERY keystroke, not on focus
+     * loss: in touch mode tapping a button or blank space does not move focus
+     * away from an EditText, so a focus-based save never fired at all and the
+     * setting appeared to do nothing.
+     */
     private void addFloatInput(int labelRes, String key, float def) {
+        final boolean thickness = Prefs.K_THICKNESS_CM.equals(key);
+        final float min = thickness ? 0.6f : 0.8f;
+        final float max = thickness ? 12f : 8f;
+        final float floorDp = thickness ? Prefs.MIN_BAR_DP : Prefs.MIN_HANDLE_DP;
+
         TextView label = new TextView(this);
         label.setTextSize(14f);
         label.setText(labelRes);
         label.setPadding(0, Prefs.dp(this, 10), 0, 0);
         root.addView(label);
 
-        EditText input = new EditText(this);
+        final TextView info = new TextView(this);
+        info.setTextSize(12f);
+        info.setTextColor(0xFF90A4AE);
+        root.addView(info);
+
+        final EditText input = new EditText(this);
         input.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
-        input.setText(String.valueOf(sp.getFloat(key, def)));
-        input.setOnFocusChangeListener((view, hasFocus) -> {
-            if (!hasFocus) {
-                float value;
-                try {
-                    value = Float.parseFloat(input.getText().toString().trim());
-                    if (value <= 0f || value > 20f) {
-                        value = def;
-                    }
-                } catch (Throwable t) {
-                    value = def;
-                }
-                input.setText(String.valueOf(value));
-                sp.edit().putFloat(key, value).apply();
-                applyLive();
+        input.setSingleLine(true);
+        input.setText(formatFloat(sp.getFloat(key, def)));
+
+        final boolean[] suppress = new boolean[1];
+
+        final Runnable refreshInfo = () -> {
+            DisplayMetrics m = Prefs.metrics(this);
+            int px = Prefs.cmToPxY(this, sp.getFloat(key, def), m);
+            info.setText(getString(R.string.hint_cm_px, px, m.densityDpi,
+                    Prefs.dp(this, floorDp)));
+        };
+        refreshInfo.run();
+
+        input.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
             }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+                if (suppress[0]) {
+                    return;
+                }
+                Float parsed = parseNumber(s.toString());
+                if (parsed == null) {
+                    info.setText(R.string.hint_bad_number);
+                    return;
+                }
+                float value = Math.max(min, Math.min(max, parsed));
+                if (value != sp.getFloat(key, def)) {
+                    sp.edit().putFloat(key, value).apply();
+                }
+                refreshInfo.run();
+                applyLiveDebounced();
+            }
+        });
+
+        input.setOnFocusChangeListener((view, hasFocus) -> {
+            if (hasFocus) {
+                return;
+            }
+            suppress[0] = true;
+            input.setText(formatFloat(sp.getFloat(key, def)));
+            input.setSelection(input.getText().length());
+            suppress[0] = false;
+            refreshInfo.run();
+            applyLive();
         });
         root.addView(input);
     }
@@ -399,24 +511,63 @@ public class MainActivity extends Activity {
         label.setPadding(0, Prefs.dp(this, 10), 0, 0);
         root.addView(label);
 
-        EditText input = new EditText(this);
+        final TextView info = new TextView(this);
+        info.setTextSize(12f);
+        info.setTextColor(0xFF90A4AE);
+        root.addView(info);
+
+        final EditText input = new EditText(this);
         input.setInputType(InputType.TYPE_CLASS_NUMBER);
+        input.setSingleLine(true);
         input.setText(String.valueOf(sp.getInt(key, def)));
-        input.setOnFocusChangeListener((view, hasFocus) -> {
-            if (!hasFocus) {
-                int value;
-                try {
-                    value = Integer.parseInt(input.getText().toString().trim());
-                    if (value < 0 || value > 400) {
-                        value = def;
-                    }
-                } catch (Throwable t) {
-                    value = def;
-                }
-                input.setText(String.valueOf(value));
-                sp.edit().putInt(key, value).apply();
-                applyLive();
+
+        final boolean[] suppress = new boolean[1];
+
+        final Runnable refreshInfo = () -> {
+            DisplayMetrics m = Prefs.metrics(this);
+            info.setText(getString(R.string.hint_dp_px, Prefs.dp(this, sp.getInt(key, def)),
+                    m.densityDpi));
+        };
+        refreshInfo.run();
+
+        input.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
             }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+                if (suppress[0]) {
+                    return;
+                }
+                Float parsed = parseNumber(s.toString());
+                if (parsed == null) {
+                    info.setText(R.string.hint_bad_number);
+                    return;
+                }
+                int value = Math.max(0, Math.min(400, Math.round(parsed)));
+                if (value != sp.getInt(key, def)) {
+                    sp.edit().putInt(key, value).apply();
+                }
+                refreshInfo.run();
+                applyLiveDebounced();
+            }
+        });
+
+        input.setOnFocusChangeListener((view, hasFocus) -> {
+            if (hasFocus) {
+                return;
+            }
+            suppress[0] = true;
+            input.setText(String.valueOf(sp.getInt(key, def)));
+            input.setSelection(input.getText().length());
+            suppress[0] = false;
+            refreshInfo.run();
+            applyLive();
         });
         root.addView(input);
     }
@@ -434,16 +585,47 @@ public class MainActivity extends Activity {
         String value = sp.getString(key, def);
         input.setText(value == null ? def : value);
         input.setHint(def);
-        input.setOnFocusChangeListener((view, hasFocus) -> {
-            if (!hasFocus) {
-                String text = input.getText().toString().trim();
-                if (text.isEmpty()) {
-                    text = def;
-                }
-                input.setText(text);
-                sp.edit().putString(key, text).apply();
-                applyLive();
+
+        final boolean[] suppress = new boolean[1];
+        input.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
             }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+                if (suppress[0]) {
+                    return;
+                }
+                String text = s.toString().trim();
+                if (text.isEmpty()) {
+                    return;
+                }
+                if (!text.equals(sp.getString(key, def))) {
+                    sp.edit().putString(key, text).apply();
+                    applyLiveDebounced();
+                }
+            }
+        });
+
+        input.setOnFocusChangeListener((view, hasFocus) -> {
+            if (hasFocus) {
+                return;
+            }
+            String text = input.getText().toString().trim();
+            if (text.isEmpty()) {
+                text = def;
+            }
+            suppress[0] = true;
+            input.setText(text);
+            input.setSelection(input.getText().length());
+            suppress[0] = false;
+            sp.edit().putString(key, text).apply();
+            applyLive();
         });
         root.addView(input);
     }

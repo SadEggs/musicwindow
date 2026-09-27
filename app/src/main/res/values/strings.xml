@@ -53,6 +53,9 @@
     <string name="hint_poweramp">注意：Poweramp 需要保持通知（媒体控制）开启，系统才会暴露媒体会话；若条上一直显示「请授予通知使用权」，请检查通知使用权是否被系统回收。</string>
     <string name="set_pref_pkg">优先控制的播放器包名</string>
     <string name="set_pref_pkg_hint">com.maxmpz.audioplayer</string>
+    <string name="hint_cm_px">≈ %1$d px（屏幕 %2$d ppi，最小 %3$d px）</string>
+    <string name="hint_dp_px">≈ %1$d px（屏幕 %2$d ppi）</string>
+    <string name="hint_bad_number">请输入数字，例如 3 或 2.5</string>
 
     <string name="bar_need_nls">请授予通知使用权</string>
     <string name="bar_need_overlay">请授予悬浮窗权限</string>

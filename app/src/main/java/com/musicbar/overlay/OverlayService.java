@@ -263,10 +263,13 @@ public class OverlayService extends Service implements MediaBridge.Listener {
         int screenWidth = metrics.widthPixels;
         int screenHeight = metrics.heightPixels;
 
-        int thickness = Math.max(Prefs.dp(this, 44),
+        int thickness = Math.max(Prefs.dp(this, Prefs.MIN_BAR_DP),
                 Prefs.cmToPxY(this, Prefs.thicknessCm(this), metrics));
-        int handleSize = Math.max(Prefs.dp(this, 40),
+        int handleSize = Math.max(Prefs.dp(this, Prefs.MIN_HANDLE_DP),
                 Prefs.cmToPxY(this, Prefs.handleCm(this), metrics));
+
+        // A short bar cannot fit the full-size controls; let the view slim down.
+        bar.setCompact(thickness < Prefs.dp(this, 76));
 
         int width;
         int height;

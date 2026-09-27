@@ -38,7 +38,7 @@
 
 打开 https://github.com/SadEggs/musicwindow/releases —— 直接下 `app-release.apk`。
 平板上用浏览器点这个链接也能直接下：
-https://github.com/SadEggs/musicwindow/releases/download/v0.1/app-release.apk
+https://github.com/SadEggs/musicwindow/releases/download/v0.2/app-release.apk
 
 **B. 从 Actions 构件下载**
 
@@ -73,6 +73,14 @@ git push -f origin v1.1
 4. **自定义 View 里不要写裸的 `MATCH_PARENT` / `WRAP_CONTENT`**。这两个常量属于
    `ViewGroup.LayoutParams` 这个嵌套类，Java 不会把嵌套类成员继承进子类作用域，
    必须写 `LayoutParams.MATCH_PARENT`（本项目第一次编译就栽在这里）。
+5. **设置页的输入框不能在「失去焦点」时才保存**（v0.1 的真实 bug）。触摸模式下点 Button、
+   SeekBar 或空白处都**不会**让 EditText 失焦（Button 在触摸模式下不可聚焦），所以
+   `onFocusChange(false)` 永不触发，值根本没写进 SharedPreferences —— 表现就是
+   「短边宽度改了没用」，而滑杆类设置（长度、透明度）却正常。现在改成**每次输入即时保存**
+   ＋350ms 防抖后再刷新悬浮窗，并在输入框下实时显示换算结果（`≈ 322 px`），
+   值有没有生效一眼可见。
+6. **数字输入要做容错**。中文输入法的全角数字和逗号（`2，5`）会让 `Float.parseFloat` 抛异常，
+   旧代码 catch 后直接退回默认值 3，用户会以为"改了没用"。现在会先归一化再解析。
 
 ---
 

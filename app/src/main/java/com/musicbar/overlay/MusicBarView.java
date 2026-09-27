@@ -61,6 +61,7 @@ public class MusicBarView extends LinearLayout {
     private final SeekBar seekBar;
     private final ImageButton playButton;
 
+    private boolean compact;
     private boolean collapsed;
     private boolean userSeeking;
     private boolean dragging;
@@ -274,6 +275,26 @@ public class MusicBarView extends LinearLayout {
             }
             setTextIfChanged(totalView, "--:--");
         }
+    }
+
+    /**
+     * Slim the inner layout down when the window is too short to fit the
+     * full-size controls (i.e. a small "short-side width" setting). Without
+     * this, thin bars would clip their content instead of looking right.
+     */
+    public void setCompact(boolean value) {
+        if (compact == value) {
+            return;
+        }
+        compact = value;
+        int vPad = dp(value ? 3 : 8);
+        setPadding(dp(value ? 8 : 12), vPad, dp(value ? 8 : 12), vPad);
+        artView.setVisibility(value ? GONE : VISIBLE);
+        titleView.setTextSize(value ? 13f : 16f);
+        artistView.setTextSize(value ? 9f : 12f);
+        curView.setTextSize(value ? 8f : 11f);
+        totalView.setTextSize(value ? 8f : 11f);
+        requestLayout();
     }
 
     public boolean isCollapsed() {
