@@ -60,6 +60,11 @@ public class MusicBarView extends LinearLayout {
     private final FrameLayout handleBox;
     private final ImageView artView;
     private final ImageView handleIcon;
+    private final FrameLayout textStack;
+    private final LinearLayout texts;
+    private final LinearLayout previewBox;
+    private final TextView previewTitle;
+    private final TextView previewHint;
     private final TextView titleView;
     private final TextView artistView;
     private final TextView curView;
@@ -67,9 +72,11 @@ public class MusicBarView extends LinearLayout {
     private final SeekBar seekBar;
     private final ImageButton playButton;
     private final ImageButton pinButton;
+    private ImageButton libraryButton;
 
     private static final long LONG_PRESS_MS = 320L;
     private static final int SWIPE_MIN_DP = 56;
+    private static final int SWIPE_COMMIT_PERCENT = 30;
 
     private final Handler ui = new Handler(Looper.getMainLooper());
 
@@ -81,6 +88,9 @@ public class MusicBarView extends LinearLayout {
     private boolean swipeFired;
     private boolean pinned;
     private boolean lastPlaying;
+    private boolean swipeMode;
+    private float swipeDx;
+    private MediaBridge bridge;
     private float downRawX;
     private float downRawY;
     private long durationMs;
@@ -115,9 +125,17 @@ public class MusicBarView extends LinearLayout {
         artParams.rightMargin = dp(10);
         row.addView(artView, artParams);
 
-        LinearLayout texts = new LinearLayout(ctx);
+        // The song text and the incoming song share one clipped stack, so a swipe
+        // can slide the next track in while the current one slides out.
+        textStack = new FrameLayout(ctx);
+        textStack.setClipChildren(true);
+        textStack.setClipToPadding(true);
+        row.addView(textStack, new LayoutParams(0, LayoutParams.WRAP_CONTENT, 1f));
+
+        texts = new LinearLayout(ctx);
         texts.setOrientation(VERTICAL);
-        row.addView(texts, new LayoutParams(0, LayoutParams.WRAP_CONTENT, 1f));
+        textStack.addView(texts, new FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.WRAP_CONTENT));
 
         titleView = new TextView(ctx);
         titleView.setTextColor(0xFFFFFFFF);
@@ -138,6 +156,30 @@ public class MusicBarView extends LinearLayout {
         LayoutParams artistParams = new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT);
         artistParams.topMargin = dp(2);
         texts.addView(artistView, artistParams);
+
+        // The card that slides in while swiping: the song that is about to play.
+        previewBox = new LinearLayout(ctx);
+        previewBox.setOrientation(VERTICAL);
+        previewBox.setVisibility(INVISIBLE);
+        textStack.addView(previewBox, new FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.WRAP_CONTENT));
+
+        previewTitle = new TextView(ctx);
+        previewTitle.setTextColor(0xFFFFFFFF);
+        previewTitle.setTextSize(16f);
+        previewTitle.setTypeface(Typeface.DEFAULT_BOLD);
+        previewTitle.setSingleLine(true);
+        previewTitle.setEllipsize(TextUtils.TruncateAt.END);
+        previewBox.addView(previewTitle,
+                new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
+
+        previewHint = new TextView(ctx);
+        previewHint.setTextColor(0xFF90A4AE);
+        previewHint.setTextSize(12f);
+        previewHint.setSingleLine(true);
+        LayoutParams hintParams = new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT);
+        hintParams.topMargin = dp(2);
+        previewBox.addView(previewHint, hintParams);
 
         ImageButton prevButton = makeButton(R.drawable.ic_prev, R.string.cd_prev);
         prevButton.setOnClickListener(v -> {
@@ -171,7 +213,7 @@ public class MusicBarView extends LinearLayout {
         });
         row.addView(pinButton, buttonParams(false));
 
-        ImageButton libraryButton = makeButton(R.drawable.ic_folder, R.string.cd_library);
+        libraryButton = makeButton(R.drawable.ic_folder, R.string.cd_library);
         libraryButton.setOnClickListener(v -> {
             if (cb != null) {
                 cb.onLibraryToggle();
@@ -228,6 +270,7 @@ public class MusicBarView extends LinearLayout {
 
     public void update(MediaBridge bridge) {
         Context ctx = getContext();
+        this.bridge = bridge;
 
         String status = bridge.statusText();
         if (!bridge.hasSession() && !TextUtils.isEmpty(status)) {
@@ -324,6 +367,20 @@ public class MusicBarView extends LinearLayout {
         }
     }
 
+    /**
+     * While the library panel is open the right-hand button becomes the cross that
+     * closes it, so the way out sits in the corner the panel unfolds from.
+     */
+    public void setLibraryOpen(boolean open) {
+        if (libraryButton == null) {
+            return;
+        }
+        libraryButton.setImageResource(open ? R.drawable.ic_close : R.drawable.ic_folder);
+        libraryButton.setContentDescription(getContext().getString(
+                open ? R.string.cd_close_library : R.string.cd_library));
+        libraryButton.setAlpha(open ? 1f : 0.85f);
+    }
+
     public void setCompact(boolean value) {
         if (compact == value) {
             return;
@@ -418,6 +475,8 @@ public class MusicBarView extends LinearLayout {
                     dragging = false;
                     longPressed = false;
                     swipeFired = false;
+                    swipeMode = false;
+                    swipeDx = 0f;
                     ui.postDelayed(longPressRunnable, LONG_PRESS_MS);
                     if (cb != null) {
                         cb.onUserActivity();
@@ -446,22 +505,36 @@ public class MusicBarView extends LinearLayout {
                     if (Math.abs(dx) > slop * 2f && Math.abs(dx) > Math.abs(dy) * 1.5f) {
                         // Clearly sideways: never let this become a window drag.
                         ui.removeCallbacks(longPressRunnable);
-                        if (!swipeFired && Math.abs(dx) >= dp(SWIPE_MIN_DP)) {
-                            swipeFired = true;
-                            if (cb != null) {
-                                if (dx < 0f) {
-                                    cb.onNext();
-                                } else {
-                                    cb.onPrev();
+                        if (collapsed) {
+                            // The little handle has no room for a preview, so it keeps
+                            // the old behaviour: switch as soon as it is far enough.
+                            if (!swipeFired && Math.abs(dx) >= dp(SWIPE_MIN_DP)) {
+                                swipeFired = true;
+                                if (cb != null) {
+                                    if (dx < 0f) {
+                                        cb.onNext();
+                                    } else {
+                                        cb.onPrev();
+                                    }
                                 }
                             }
+                        } else {
+                            // Slide the incoming song in, and only switch on release.
+                            if (!swipeMode) {
+                                swipeMode = true;
+                                beginSwipe(dx);
+                            }
+                            swipeDx = dx;
+                            updateSwipe(dx);
                         }
                     }
                     return true;
                 }
                 case MotionEvent.ACTION_UP:
                     ui.removeCallbacks(longPressRunnable);
-                    if (dragging) {
+                    if (swipeMode) {
+                        endSwipe(swipeDx);
+                    } else if (dragging) {
                         if (cb != null) {
                             cb.onDragEnd();
                         }
@@ -474,12 +547,16 @@ public class MusicBarView extends LinearLayout {
                     return true;
                 case MotionEvent.ACTION_CANCEL:
                     ui.removeCallbacks(longPressRunnable);
+                    if (swipeMode) {
+                        cancelSwipe();
+                    }
                     if (dragging && cb != null) {
                         cb.onDragEnd();
                     }
                     dragging = false;
                     longPressed = false;
                     swipeFired = false;
+                    swipeMode = false;
                     return true;
                 default:
                     return false;
@@ -493,6 +570,112 @@ public class MusicBarView extends LinearLayout {
         } else if (cb != null) {
             cb.onToggle();
         }
+    }
+
+    // ----- swipe preview ---------------------------------------------------------
+    //
+    // Swiping is what changes the song, so the bar slides the incoming track in as
+    // the finger moves and only commits on release. That makes the gesture obvious
+    // (especially with the bar unpinned, where a drag is also possible) and shows
+    // what is about to play before anything actually changes.
+
+    private int stackWidth() {
+        return Math.max(dp(120), textStack.getWidth());
+    }
+
+    /** How far a swipe must travel before letting go really switches the song. */
+    private int commitDistance() {
+        return Math.max(dp(SWIPE_MIN_DP), stackWidth() * SWIPE_COMMIT_PERCENT / 100);
+    }
+
+    private void beginSwipe(float dx) {
+        boolean next = dx < 0f;
+        Context ctx = getContext();
+        String incoming = bridge == null ? "" : bridge.queueItemTitle(next ? 1 : -1);
+        String label = ctx.getString(next ? R.string.bar_swipe_next : R.string.bar_swipe_prev);
+
+        previewTitle.setTextSize(compact ? 13f : 16f);
+        previewHint.setTextSize(compact ? 9f : 12f);
+        previewTitle.setText(TextUtils.isEmpty(incoming) ? label : incoming);
+        previewHint.setText(ctx.getString(R.string.bar_swipe_more));
+        previewHint.setTextColor(0xFF90A4AE);
+
+        int width = stackWidth();
+        previewBox.setVisibility(VISIBLE);
+        previewBox.setTranslationX(next ? width : -width);
+        previewBox.setAlpha(0.3f);
+        texts.setTranslationX(0f);
+        texts.setAlpha(1f);
+    }
+
+    private void updateSwipe(float dx) {
+        int width = stackWidth();
+        float clamped = Math.max(-width, Math.min(width, dx));
+        float progress = Math.min(1f, Math.abs(clamped) / (float) width);
+        boolean next = dx < 0f;
+
+        texts.setTranslationX(clamped);
+        previewBox.setTranslationX((next ? width : -width) + clamped);
+        texts.setAlpha(1f - 0.5f * progress);
+        previewBox.setAlpha(0.3f + 0.7f * progress);
+
+        boolean armed = Math.abs(clamped) >= commitDistance();
+        previewHint.setText(getContext().getString(armed
+                ? R.string.bar_swipe_release : R.string.bar_swipe_more));
+        previewHint.setTextColor(armed ? 0xFF8BC34A : 0xFF90A4AE);
+    }
+
+    private void endSwipe(float dx) {
+        swipeMode = false;
+        int width = stackWidth();
+        boolean next = dx < 0f;
+
+        if (Math.abs(dx) < commitDistance()) {
+            // Not far enough: everything slides back and the song stays as it was.
+            texts.animate().translationX(0f).alpha(1f).setDuration(140L).start();
+            previewBox.animate().translationX(next ? width : -width).alpha(0.3f)
+                    .setDuration(140L)
+                    .withEndAction(() -> {
+                        if (!swipeMode) {
+                            previewBox.setVisibility(INVISIBLE);
+                        }
+                    })
+                    .start();
+            return;
+        }
+
+        final boolean goNext = next;
+        texts.animate().translationX(goNext ? -width : width).alpha(0f)
+                .setDuration(130L).start();
+        previewBox.animate().translationX(0f).alpha(1f).setDuration(130L)
+                .withEndAction(() -> {
+                    if (cb != null) {
+                        if (goNext) {
+                            cb.onNext();
+                        } else {
+                            cb.onPrev();
+                        }
+                    }
+                    // The preview card now stands where the title was, so hand its
+                    // text over and put everything back; the next update() will draw
+                    // the real song in exactly the same place.
+                    setTextIfChanged(titleView, previewTitle.getText());
+                    if (swipeMode) {
+                        return;
+                    }
+                    texts.setTranslationX(0f);
+                    texts.setAlpha(1f);
+                    previewBox.setTranslationX(0f);
+                    previewBox.setVisibility(INVISIBLE);
+                })
+                .start();
+    }
+
+    private void cancelSwipe() {
+        swipeMode = false;
+        texts.animate().translationX(0f).alpha(1f).setDuration(120L).start();
+        previewBox.setTranslationX(0f);
+        previewBox.setVisibility(INVISIBLE);
     }
 
     private ImageButton makeButton(int iconRes, int contentDescRes) {

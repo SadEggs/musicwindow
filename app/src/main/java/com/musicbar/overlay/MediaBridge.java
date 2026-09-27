@@ -4,8 +4,10 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.media.MediaDescription;
 import android.media.MediaMetadata;
 import android.media.session.MediaController;
+import android.media.session.MediaSession;
 import android.media.session.MediaSessionManager;
 import android.media.session.PlaybackState;
 import android.net.Uri;
@@ -603,6 +605,70 @@ public class MediaBridge {
         return md.getString(MediaMetadata.METADATA_KEY_TITLE)
                 + "|" + md.getString(MediaMetadata.METADATA_KEY_ARTIST)
                 + "|" + md.getLong(MediaMetadata.METADATA_KEY_DURATION);
+    }
+
+    /**
+     * Title of the track sitting {@code offset} places away in the playing queue:
+     * +1 for the next one, -1 for the previous one.
+     *
+     * This is what the bar previews while a swipe is in progress, so the incoming
+     * song can be read before letting go. Returns "" when the player publishes no
+     * queue - several players never do, and then the preview falls back to a plain
+     * "next track" hint.
+     */
+    public String queueItemTitle(int offset) {
+        MediaController c = controller;
+        if (c == null || offset == 0) {
+            return "";
+        }
+        List<MediaSession.QueueItem> queue;
+        try {
+            queue = c.getQueue();
+        } catch (Throwable t) {
+            return "";
+        }
+        if (queue == null || queue.isEmpty()) {
+            return "";
+        }
+
+        PlaybackState state = c.getPlaybackState();
+        long activeId = state == null
+                ? MediaSession.QueueItem.UNKNOWN_ID : state.getActiveQueueItemId();
+        int index = -1;
+        if (activeId != MediaSession.QueueItem.UNKNOWN_ID) {
+            for (int i = 0; i < queue.size(); i++) {
+                MediaSession.QueueItem item = queue.get(i);
+                if (item != null && item.getQueueId() == activeId) {
+                    index = i;
+                    break;
+                }
+            }
+        }
+        if (index < 0) {
+            // Some players leave the active id unset: fall back to matching the title.
+            String now = title();
+            for (int i = 0; i < queue.size(); i++) {
+                MediaSession.QueueItem item = queue.get(i);
+                MediaDescription description = item == null ? null : item.getDescription();
+                CharSequence text = description == null ? null : description.getTitle();
+                if (text != null && text.toString().equals(now)) {
+                    index = i;
+                    break;
+                }
+            }
+        }
+        if (index < 0) {
+            return "";
+        }
+
+        int target = index + offset;
+        if (target < 0 || target >= queue.size()) {
+            return "";
+        }
+        MediaSession.QueueItem targetItem = queue.get(target);
+        MediaDescription targetDescription = targetItem == null ? null : targetItem.getDescription();
+        CharSequence targetText = targetDescription == null ? null : targetDescription.getTitle();
+        return targetText == null ? "" : targetText.toString();
     }
 
     public void toggle() {

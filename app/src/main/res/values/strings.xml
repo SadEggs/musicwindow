@@ -92,6 +92,10 @@
     <string name="browser_loose">已按编号近似匹配到曲目</string>
     <string name="browser_miss">曲库里没有这首歌</string>
 
+    <string name="bar_swipe_next">下一曲</string>
+    <string name="bar_swipe_prev">上一曲</string>
+    <string name="bar_swipe_more">继续滑动</string>
+    <string name="bar_swipe_release">松手切换</string>
     <string name="bar_need_nls">请授予通知使用权</string>
     <string name="bar_need_overlay">请授予悬浮窗权限</string>
     <string name="bar_unknown_title">未知曲目</string>
