@@ -37,6 +37,7 @@ public final class Prefs {
     public static final String K_KEEP_SHUFFLE = "keep_shuffle";
     public static final String K_RESHUFFLE = "reshuffle_mode";
     public static final String K_PLAY_ROUTE = "play_route";
+    public static final String K_FOLDER_PLAY = "folder_play";
 
     public static final String EDGE_TOP = "top";
     public static final String EDGE_BOTTOM = "bottom";
@@ -169,6 +170,15 @@ public final class Prefs {
 
     public static int playRoute(Context c) {
         return clamp(sp(c).getInt(K_PLAY_ROUTE, ROUTE_AUTO), 0, 3);
+    }
+
+    /**
+     * Tell the player which folder a song lives in before asking for that song, so it builds
+     * the folder's queue rather than a queue holding one track. This is also what makes
+     * shuffle mean "shuffle inside this folder" instead of "shuffle one song".
+     */
+    public static boolean folderPlay(Context c) {
+        return sp(c).getBoolean(K_FOLDER_PLAY, true);
     }
 
     private static int clamp(int value, int min, int max) {

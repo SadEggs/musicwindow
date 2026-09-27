@@ -481,6 +481,20 @@ public class MediaBridge {
         }
     }
 
+    /** How many items the player's queue holds, or -1 when it publishes no queue. */
+    public int queueSize() {
+        try {
+            MediaController c = controller;
+            if (c == null) {
+                return -1;
+            }
+            List<MediaSession.QueueItem> queue = c.getQueue();
+            return queue == null ? -1 : queue.size();
+        } catch (Throwable t) {
+            return -1;
+        }
+    }
+
     private PlaybackState rawState() {
         MediaController c = controller;
         return c == null ? null : c.getPlaybackState();

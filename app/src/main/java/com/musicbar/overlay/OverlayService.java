@@ -437,12 +437,25 @@ public class OverlayService extends Service implements MediaBridge.Listener {
         Toast.makeText(this, getString(R.string.toast_play_searching, song.title),
                 Toast.LENGTH_SHORT).show();
 
-        PlayerBrowser.get(this).findMediaId(song.title, song.artist, 4000L,
+        final PlayerBrowser browser = PlayerBrowser.get(this);
+        browser.findMediaId(song.title, song.artist, 4000L,
                 (mediaId, how) -> {
                     if (token != playToken) {
                         return;
                     }
-                    startPlayAttempts(song, mediaId, before, token);
+                    if (!Prefs.folderPlay(this)) {
+                        startPlayAttempts(song, mediaId, before, token);
+                        return;
+                    }
+                    // Tell the player which folder this song lives in before asking for it:
+                    // it then builds the folder's queue instead of a one-track queue, which
+                    // is also the only way shuffle can mean "shuffle inside this folder".
+                    browser.keepSubscribed(browser.lastParent());
+                    handler.postDelayed(() -> {
+                        if (token == playToken) {
+                            startPlayAttempts(song, mediaId, before, token);
+                        }
+                    }, 250L);
                 });
     }
 

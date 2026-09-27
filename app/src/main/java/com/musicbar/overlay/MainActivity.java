@@ -134,6 +134,7 @@ public class MainActivity extends Activity {
         addChoice(R.string.set_play_route, Prefs.K_PLAY_ROUTE, Prefs.ROUTE_AUTO,
                 new int[]{R.string.route_auto, R.string.route_id,
                         R.string.route_search, R.string.route_uri});
+        addCheckBox(R.string.set_folder_play, Prefs.K_FOLDER_PLAY, true);
         addNote(R.string.set_collapse_hint);
 
         // ---- advanced ---------------------------------------------------------
@@ -219,7 +220,13 @@ public class MainActivity extends Activity {
                 + " " + getString(R.string.diag_repeat) + "=" + modeText(bridge.repeatMode(), false)
                 + " " + getString(R.string.diag_mode_api) + "=" + bridge.modeApi()
                 + " " + getString(R.string.diag_notify) + "=" + bridge.notificationActionsText()
-                + " " + getString(R.string.diag_custom) + "=" + bridge.customActionsText();
+                + " " + getString(R.string.diag_custom) + "=" + bridge.customActionsText()
+                + " " + getString(R.string.diag_queue) + "=" + queueText(bridge.queueSize());
+    }
+
+    /** The player's queue length, or "unknown" when it publishes none. */
+    private String queueText(int size) {
+        return size < 0 ? getString(R.string.diag_none) : String.valueOf(size);
     }
 
     /**
