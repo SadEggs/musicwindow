@@ -81,6 +81,16 @@
     <string name="toast_play_no_session">没有可用的播放会话，请先在播放器里播放一次</string>
     <string name="toast_play_unsupported">播放器没有响应点播请求，可能不支持直接切歌，请在播放器内选歌</string>
     <string name="hint_library">提示：点条右端的文件夹图标展开媒体库（长按该图标仍是折叠成小把手）。</string>
+    <string name="toast_play_searching">正在查找：%1$s</string>
+    <string name="diag_browser_state">播放器浏览服务</string>
+    <string name="browser_idle">尚未使用（还没在面板里点过歌）</string>
+    <string name="browser_ok">已连接</string>
+    <string name="browser_none">设备上没有可用的播放器浏览服务</string>
+    <string name="browser_failed">连接播放器浏览服务失败</string>
+    <string name="browser_timeout">查找超时，曲库里没匹配到这首歌</string>
+    <string name="browser_exact">已按编号精确匹配到曲目</string>
+    <string name="browser_loose">已按编号近似匹配到曲目</string>
+    <string name="browser_miss">曲库里没有这首歌</string>
 
     <string name="bar_need_nls">请授予通知使用权</string>
     <string name="bar_need_overlay">请授予悬浮窗权限</string>

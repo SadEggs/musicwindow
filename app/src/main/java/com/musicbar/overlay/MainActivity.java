@@ -189,7 +189,9 @@ public class MainActivity extends Activity {
     private String browserServicesText() {
         Intent intent = new Intent(MediaBrowserService.SERVICE_INTERFACE);
         List<ResolveInfo> found = getPackageManager().queryIntentServices(intent, 0);
-        StringBuilder sb = new StringBuilder(getString(R.string.diag_browser));
+        StringBuilder sb = new StringBuilder(getString(R.string.diag_browser_state));
+        sb.append(": ").append(PlayerBrowser.get(this).statusText(this));
+        sb.append('\n').append(getString(R.string.diag_browser));
         if (found == null || found.isEmpty()) {
             sb.append(": ").append(getString(R.string.diag_none));
             return sb.toString();

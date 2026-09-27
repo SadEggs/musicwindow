@@ -553,6 +553,58 @@ public class MediaBridge {
         }
     }
 
+    /**
+     * Play by the id the player itself uses for the track, obtained from its own
+     * media browser service. Nothing has to be guessed from a file path or a
+     * title, which makes this the most reliable of the point-song requests.
+     */
+    public boolean playFromMediaId(String mediaId) {
+        MediaController c = controller;
+        if (c == null || mediaId == null || mediaId.isEmpty()) {
+            return false;
+        }
+        try {
+            c.getTransportControls().playFromMediaId(mediaId, null);
+            return true;
+        } catch (Throwable t) {
+            return false;
+        }
+    }
+
+    /**
+     * Resume playback. A paused player will sometimes load the requested track and
+     * then just sit there, so the caller nudges it once the track has changed.
+     */
+    public void play() {
+        MediaController c = controller;
+        if (c == null) {
+            return;
+        }
+        try {
+            c.getTransportControls().play();
+        } catch (Throwable ignored) {
+            // ignore
+        }
+    }
+
+    /**
+     * A value that changes as soon as a different track is loaded, so the caller
+     * can tell whether a play request was honoured or quietly ignored.
+     */
+    public String trackSignature() {
+        MediaController c = controller;
+        if (c == null) {
+            return "";
+        }
+        MediaMetadata md = c.getMetadata();
+        if (md == null) {
+            return "";
+        }
+        return md.getString(MediaMetadata.METADATA_KEY_TITLE)
+                + "|" + md.getString(MediaMetadata.METADATA_KEY_ARTIST)
+                + "|" + md.getLong(MediaMetadata.METADATA_KEY_DURATION);
+    }
+
     public void toggle() {
         MediaController c = controller;
         if (c == null) {

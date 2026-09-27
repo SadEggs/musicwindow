@@ -40,6 +40,8 @@ public class OverlayService extends Service implements MediaBridge.Listener {
     private boolean collapsed;
     private FolderPanelView panel;
     private boolean panelAdded;
+    private int playToken;
+    private long hideSince;
     private long lastActivity;
     private int dragBaseX;
     private int dragBaseY;
@@ -225,6 +227,8 @@ public class OverlayService extends Service implements MediaBridge.Listener {
     @Override
     public void onDestroy() {
         running = false;
+        playToken++;
+        PlayerBrowser.get(this).release();
         hidePanel();
         panel = null;
         detachView();
@@ -399,13 +403,16 @@ public class OverlayService extends Service implements MediaBridge.Listener {
     }
 
     /**
-     * Ask the running player to switch to this file, without pulling it to the
-     * front so the game stays on screen.
+     * Play a song the user tapped in the library panel, without pulling the player
+     * to the front so the game keeps the screen.
      *
-     * Players differ in what they accept, so this walks a small ladder of
-     * requests - the standard search request first (the one players answer for
-     * Android Auto and Assistant), then the file URI - and only reports failure
-     * after every option has been tried and the track really did not change.
+     * The most accurate request is by the id the player itself assigned to the
+     * track, so the first step is a bounded lookup in the player's own browser
+     * service. From there a ladder of requests is tried - by id, by name, by file
+     * - and after each one the track is checked a few times to see whether it
+     * really changed. A player that loaded the track but stayed paused gets a
+     * resume nudge, which is what makes this work when music was paused before the
+     * tap: it used to load the song and sit there doing nothing.
      */
     private void playFromLibrary(MediaLibrary.Song song) {
         MediaBridge bridge = MediaBridge.get();
@@ -413,10 +420,29 @@ public class OverlayService extends Service implements MediaBridge.Listener {
             Toast.makeText(this, R.string.toast_play_no_session, Toast.LENGTH_LONG).show();
             return;
         }
+        final int token = ++playToken;
+        final String before = bridge.trackSignature();
 
-        int support = bridge.playFromSupport();
-        int[] order = new int[2];
+        Toast.makeText(this, getString(R.string.toast_play_searching, song.title),
+                Toast.LENGTH_SHORT).show();
+
+        PlayerBrowser.get(this).findMediaId(song.title, song.artist, 4000L,
+                (mediaId, how) -> {
+                    if (token != playToken) {
+                        return;
+                    }
+                    startPlayAttempts(song, mediaId, before, token);
+                });
+    }
+
+    private void startPlayAttempts(MediaLibrary.Song song, String mediaId, String before,
+                                   int token) {
+        int support = MediaBridge.get().playFromSupport();
+        int[] order = new int[3];
         int count = 0;
+        if (mediaId != null) {
+            order[count++] = MediaBridge.CAN_MEDIA_ID;
+        }
         if ((support & MediaBridge.CAN_SEARCH) != 0) {
             order[count++] = MediaBridge.CAN_SEARCH;
         }
@@ -424,37 +450,76 @@ public class OverlayService extends Service implements MediaBridge.Listener {
             order[count++] = MediaBridge.CAN_URI;
         }
         if (count == 0) {
-            // The session advertises nothing: try both anyway, cheapest first.
+            // The session advertises nothing: try anyway, most accurate first.
             order[count++] = MediaBridge.CAN_SEARCH;
             order[count++] = MediaBridge.CAN_URI;
         }
-        tryPlay(song, order, count, 0, bridge.title());
+        attemptPlay(song, mediaId, order, count, 0, before, token);
     }
 
-    private void tryPlay(MediaLibrary.Song song, final int[] order, final int count,
-                         final int index, final String before) {
+    private void attemptPlay(MediaLibrary.Song song, String mediaId, int[] order, int count,
+                             int index, String before, int token) {
+        if (token != playToken) {
+            return;
+        }
         if (index >= count) {
             Toast.makeText(this, R.string.toast_play_unsupported, Toast.LENGTH_LONG).show();
             return;
         }
         MediaBridge bridge = MediaBridge.get();
-        boolean sent = order[index] == MediaBridge.CAN_SEARCH
-                ? bridge.playFromSearch(song.title)
-                : bridge.playUri(song.uri());
+        int mode = order[index];
+        boolean sent;
+        if (mode == MediaBridge.CAN_MEDIA_ID) {
+            sent = bridge.playFromMediaId(mediaId);
+        } else if (mode == MediaBridge.CAN_SEARCH) {
+            sent = bridge.playFromSearch(song.title);
+        } else {
+            sent = bridge.playUri(song.uri());
+        }
         if (!sent) {
-            tryPlay(song, order, count, index + 1, before);
+            attemptPlay(song, mediaId, order, count, index + 1, before, token);
             return;
         }
-        final int next = index + 1;
+        checkTrack(song, mediaId, order, count, index, before, token, 1);
+    }
+
+    private void checkTrack(MediaLibrary.Song song, String mediaId, int[] order, int count,
+                            int index, String before, int token, int round) {
         handler.postDelayed(() -> {
-            String after = MediaBridge.get().title();
-            if (after != null && !after.equals(before)) {
-                Toast.makeText(OverlayService.this,
-                        getString(R.string.toast_play_ok, after), Toast.LENGTH_SHORT).show();
-            } else {
-                tryPlay(song, order, count, next, before);
+            if (token != playToken) {
+                return;
             }
-        }, 1800L);
+            MediaBridge bridge = MediaBridge.get();
+            if (!bridge.trackSignature().equals(before)) {
+                if (!bridge.isPlaying()) {
+                    // The player loaded the track but stayed paused.
+                    bridge.play();
+                }
+                Toast.makeText(OverlayService.this,
+                        getString(R.string.toast_play_ok, bridge.title()), Toast.LENGTH_SHORT).show();
+                refreshAfterPlay(token, 4);
+                return;
+            }
+            if (round >= 3) {
+                attemptPlay(song, mediaId, order, count, index + 1, before, token);
+                return;
+            }
+            checkTrack(song, mediaId, order, count, index, before, token, round + 1);
+        }, 600L);
+    }
+
+    /** Metadata often arrives a moment after the switch, so keep the bar in step. */
+    private void refreshAfterPlay(int token, int times) {
+        if (times <= 0) {
+            return;
+        }
+        handler.postDelayed(() -> {
+            if (token != playToken) {
+                return;
+            }
+            update();
+            refreshAfterPlay(token, times - 1);
+        }, 700L);
     }
 
     private void applyLayout() {
@@ -528,7 +593,23 @@ public class OverlayService extends Service implements MediaBridge.Listener {
             return;
         }
         MediaBridge bridge = MediaBridge.get();
-        if (shouldHide(bridge)) {
+        boolean hide = shouldHide(bridge);
+        if (hide && bridge.hasSession()) {
+            // Switching track can make a player report a dead state for a moment.
+            // Wait a few seconds before tearing the bar down, so it does not blink
+            // out of existence in the middle of a song change. Only applies while a
+            // session exists: with no player at all the bar still goes away at once.
+            long now = SystemClock.elapsedRealtime();
+            if (hideSince == 0L) {
+                hideSince = now;
+            }
+            if (now - hideSince < 3000L) {
+                hide = false;
+            }
+        } else {
+            hideSince = 0L;
+        }
+        if (hide) {
             detachView();
         } else {
             if (!viewAdded) {
@@ -542,6 +623,10 @@ public class OverlayService extends Service implements MediaBridge.Listener {
     }
 
     private boolean shouldHide(MediaBridge bridge) {
+        if (panelAdded) {
+            // The panel unfolds from the bar, so the bar must stay while browsing.
+            return false;
+        }
         if (!Prefs.onlyPlaying(this)) {
             return false;
         }
