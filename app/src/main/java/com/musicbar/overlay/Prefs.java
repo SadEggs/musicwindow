@@ -31,6 +31,7 @@ public final class Prefs {
     public static final String K_USE_CUSTOM = "use_custom";
     public static final String K_AUTOSTART = "autostart";
     public static final String K_HANDLE_CM = "handle_cm";
+    public static final String K_PINNED = "pinned";
 
     public static final String EDGE_TOP = "top";
     public static final String EDGE_BOTTOM = "bottom";
@@ -111,6 +112,10 @@ public final class Prefs {
     /** Diameter of the collapsed handle, in centimetres. */
     public static float handleCm(Context c) {
         return sp(c).getFloat(K_HANDLE_CM, 1.6f);
+    }
+
+    public static boolean pinned(Context c) {
+        return sp(c).getBoolean(K_PINNED, false);
     }
 
     public static int customX(Context c) {

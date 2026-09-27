@@ -36,6 +36,8 @@ public class MusicBarView extends LinearLayout {
 
         void onNext();
 
+        void onPinToggle();
+
         void onSeekTo(long positionMs);
 
         void onUserActivity();
@@ -62,6 +64,7 @@ public class MusicBarView extends LinearLayout {
     private final TextView totalView;
     private final SeekBar seekBar;
     private final ImageButton playButton;
+    private final ImageButton pinButton;
 
     private static final long LONG_PRESS_MS = 320L;
     private static final int SWIPE_MIN_DP = 56;
@@ -74,6 +77,7 @@ public class MusicBarView extends LinearLayout {
     private boolean dragging;
     private boolean longPressed;
     private boolean swipeFired;
+    private boolean pinned;
     private boolean lastPlaying;
     private float downRawX;
     private float downRawY;
@@ -156,6 +160,14 @@ public class MusicBarView extends LinearLayout {
             }
         });
         row.addView(nextButton, buttonParams(false));
+
+        pinButton = makeButton(R.drawable.ic_pin, R.string.cd_pin);
+        pinButton.setOnClickListener(v -> {
+            if (cb != null) {
+                cb.onPinToggle();
+            }
+        });
+        row.addView(pinButton, buttonParams(false));
 
         ImageButton collapseButton = makeButton(R.drawable.ic_collapse, R.string.cd_collapse);
         collapseButton.setOnClickListener(v -> setCollapsed(true, true));
@@ -291,6 +303,15 @@ public class MusicBarView extends LinearLayout {
      * full-size controls (i.e. a small "short-side width" setting). Without
      * this, thin bars would clip their content instead of looking right.
      */
+    /** Pinned bars refuse to move, so a game cannot be disturbed by a stray drag. */
+    public void setPinned(boolean value) {
+        pinned = value;
+        if (pinButton != null) {
+            pinButton.setImageResource(value ? R.drawable.ic_pin_on : R.drawable.ic_pin);
+            pinButton.setAlpha(value ? 1f : 0.55f);
+        }
+    }
+
     public void setCompact(boolean value) {
         if (compact == value) {
             return;
@@ -394,6 +415,10 @@ public class MusicBarView extends LinearLayout {
                     float dx = event.getRawX() - downRawX;
                     float dy = event.getRawY() - downRawY;
                     if (longPressed) {
+                        if (pinned) {
+                            // Pinned to the screen: dragging is disabled.
+                            return true;
+                        }
                         // Held long enough: this gesture moves the window.
                         if (!dragging && Math.hypot(dx, dy) > slop) {
                             dragging = true;

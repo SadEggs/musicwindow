@@ -101,6 +101,7 @@ public class MainActivity extends Activity {
         addSlider(R.string.set_alpha_idle, Prefs.K_ALPHA_IDLE, 5, 100, 35, "%");
         addSlider(R.string.set_alpha_active, Prefs.K_ALPHA_ACTIVE, 20, 100, 90, "%");
         addSlider(R.string.set_fade, Prefs.K_FADE_DELAY_S, 0, 20, 4, "s");
+        addCheckBox(R.string.set_pinned, Prefs.K_PINNED, false);
         addCheckBox(R.string.set_only_playing, Prefs.K_ONLY_PLAYING, true);
         addCheckBox(R.string.set_show_artist, Prefs.K_SHOW_ARTIST, true);
         addCheckBox(R.string.set_show_time, Prefs.K_SHOW_TIME, true);

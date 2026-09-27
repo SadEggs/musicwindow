@@ -38,7 +38,7 @@
 
 打开 https://github.com/SadEggs/musicwindow/releases —— 直接下 `app-release.apk`。
 平板上用浏览器点这个链接也能直接下：
-https://github.com/SadEggs/musicwindow/releases/download/v0.3/app-release.apk
+https://github.com/SadEggs/musicwindow/releases/download/v0.4/app-release.apk
 
 **B. 从 Actions 构件下载**
 
@@ -115,6 +115,8 @@ git push -f origin v1.1
 - **向右滑动条身**：上一首
 - **单击条身文字区**：播放 / 暂停
 - **长按条身后拖动**：挪到任意位置（松手后自动记住）
+- **点钉子按钮**：固定 / 取消固定。钉住后条**完全不能移动**（长按拖动也失效），
+  图标变琥珀色，避免游戏中误碰把条挪走。设置页里也有同一个开关。
 - **点右端箭头**：折叠成小把手（把手内显示专辑封面或音符图标）
 - **点小把手**：展开回横条
 - **拖动中间的细线**：跳转进度（细线上的圆点就是当前位置）

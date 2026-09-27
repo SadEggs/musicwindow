@@ -17,6 +17,7 @@ import android.os.SystemClock;
 import android.util.DisplayMetrics;
 import android.view.Gravity;
 import android.view.WindowManager;
+import android.widget.Toast;
 
 /**
  * Foreground service that owns the overlay window.
@@ -97,8 +98,20 @@ public class OverlayService extends Service implements MediaBridge.Listener {
         }
 
         @Override
+        public void onPinToggle() {
+            boolean value = !Prefs.pinned(OverlayService.this);
+            Prefs.sp(OverlayService.this).edit().putBoolean(Prefs.K_PINNED, value).apply();
+            if (bar != null) {
+                bar.setPinned(value);
+            }
+            Toast.makeText(OverlayService.this,
+                    value ? R.string.toast_pinned : R.string.toast_unpinned,
+                    Toast.LENGTH_SHORT).show();
+        }
+
+        @Override
         public void onDragStart() {
-            if (params == null) {
+            if (params == null || Prefs.pinned(OverlayService.this)) {
                 return;
             }
             DisplayMetrics metrics = Prefs.metrics(OverlayService.this);
@@ -119,7 +132,7 @@ public class OverlayService extends Service implements MediaBridge.Listener {
 
         @Override
         public void onDrag(int totalDx, int totalDy) {
-            if (params == null || bar == null || !viewAdded) {
+            if (params == null || bar == null || !viewAdded || Prefs.pinned(OverlayService.this)) {
                 return;
             }
             DisplayMetrics metrics = Prefs.metrics(OverlayService.this);
@@ -218,6 +231,7 @@ public class OverlayService extends Service implements MediaBridge.Listener {
     private void buildBar() {
         detachView();
         bar = new MusicBarView(this, callback);
+        bar.setPinned(Prefs.pinned(this));
         bar.setCollapsed(collapsed);
         applyLayout();
         addView();
