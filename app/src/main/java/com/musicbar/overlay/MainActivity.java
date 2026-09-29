@@ -64,6 +64,7 @@ public class MainActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        Lang.applyToSystem(this);
         sp = Prefs.sp(this);
 
         root = new LinearLayout(this);
