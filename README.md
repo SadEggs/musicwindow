@@ -164,8 +164,10 @@
 范围就是那个文件夹的整棵树。
 
 写这个文件需要「**所有文件访问**」权限（Android 10 起系统不允许第三方 App 写系统「播放列表」表，
-只能写文件）；设置页有对应的一项。App 只写这一个播放列表文件，不读也不动其它文件。
-文件会留在那个文件夹里（同名覆盖），想清理时删掉 `MusicBar 随机 - *.m3u` 即可。
+只能写文件）；设置页有对应的一项。App 只写**一个固定文件**
+`Music/MusicBar/MusicBar 随机 - 播放列表.m3u`，每次覆盖它，**不会往音乐文件夹里写任何东西**，
+也不会越攒越多；设置页另有「**清理生成的播放列表**」按钮，可一键删掉 App 写过的播放列表文件
+（含 0.16 遗留在各个音乐文件夹里的那些）。
 
 **暂停状态下点歌也已修复**：有些播放器（例如 Poweramp）在暂停时收到点播请求，
 会把新歌装进队列**但不开始播放**，旧版本因此误判失败并去试下一种，结果状态被搅乱。
@@ -454,9 +456,11 @@ it would from any other, so shuffle, gapless switching and the equaliser, effect
 stay inside the player, with the chosen folder tree as the range.
 
 Writing that file needs "all files access" (since Android 10 the system's playlist table is closed to
-third-party apps, so a file is the only route); the settings page has a row for it. The app writes
-that one playlist file and touches nothing else. The file stays in the folder (same name overwrites);
-delete `MusicBar 随机 - *.m3u` to clean up.
+third-party apps, so a file is the only route); the settings page has a row for it. The app writes one
+fixed file, `Music/MusicBar/MusicBar 随机 - 播放列表.m3u`, overwriting it every time — nothing is
+written into the music folders and nothing accumulates. A "clean up generated playlists" button on
+the settings page removes the playlists the app has written, including the per-folder files 0.16 left
+behind.
 
 **Point-song while paused is fixed**: some players (Poweramp among them) accept the request, load
 the new track, and then just sit there because playback was paused — older builds misread that as a

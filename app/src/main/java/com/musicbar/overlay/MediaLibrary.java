@@ -239,6 +239,22 @@ public final class MediaLibrary {
     }
 
     /**
+     * Every folder this library holds, for the one caller that has to look inside them
+     * (cleaning up playlists an older version wrote next to the songs).
+     */
+    public static List<String> foldersSnapshot() {
+        MediaLibrary library = instance;
+        List<String> out = new ArrayList<>();
+        if (library == null) {
+            return out;
+        }
+        synchronized (library) {
+            out.addAll(library.songsByFolder.keySet());
+        }
+        return out;
+    }
+
+    /**
      * Best guess at the folder holding the track that is playing right now, by
      * matching title (and artist when it helps). Returns null when unknown.
      */
