@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">MusicBar</string>
+    <string name="app_name">FloatingMusicBar</string>
 
     <string name="notif_channel">MusicBar status</string>
     <string name="notif_title">MusicBar is running</string>

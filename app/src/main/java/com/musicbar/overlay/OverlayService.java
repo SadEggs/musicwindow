@@ -260,6 +260,7 @@ public class OverlayService extends Service implements MediaBridge.Listener {
     public void onCreate() {
         super.onCreate();
         running = true;
+        Lang.applyToSystem(this);
         windowManager = (WindowManager) getSystemService(WINDOW_SERVICE);
         createChannel();
         startForeground(NOTIFICATION_ID, buildNotification());

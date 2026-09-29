@@ -19,7 +19,8 @@
 
 - **目标设备**：联想小新 Pad Pro 12.7 2025（TB375FC），Android 15，2944×1840 横屏。
   代码不绑定机型，Android 8.0+ 都能用。
-- **播放器**：基于通用 **Android MediaSession**，Poweramp、VLC、网易云、QQ 音乐等规范实现的播放器都能读。
+- **播放器**：基于通用 **Android MediaSession**，**为 Poweramp 适配并实测**，
+  其他规范实现的播放器（VLC、网易云、QQ 音乐等）**理论上同样可用**，欢迎反馈。
 - **语言**：中文 / English，设置页一键切换（悬浮窗、面板、通知一起跟着变）。
 - **零第三方依赖**：纯 framework API，不用 AndroidX、不用 Kotlin。APK 约 105 KB。
 - **授权**：[MIT](LICENSE)，可自由编译、修改、发布，**需署名原作者 SadEggs**。
@@ -30,6 +31,7 @@
 
 | 版本 | 内容 |
 | --- | --- |
+| **v1.0.1** | 修好「英文界面下系统里仍显示中文名」：应用英文名改为 **FloatingMusicBar**，并把 App 内选择的语言**同步给系统**（Android 13+，桌面图标名/应用信息页/安装界面一起跟着变） |
 | **v1.0** | **随机/顺序播放引擎**（App 自己排歌，突破播放器「文件夹队列不递归」的限制）、**面板四个开关**（随机/顺序、含子文件夹/仅本层、单曲循环、点歌带队列）、队列位置 `X/XX` 显示、中英双语完整覆盖、面板显示子文件夹歌曲数 |
 | v0.22 ~ v0.29 | 逐版本打磨随机引擎与面板开关（详见 Releases 页） |
 | v0.10 | 点歌不再关掉随机播放；面板改回从左到右、从上到下排序 |
@@ -207,8 +209,9 @@ part of this project that took the most work, and the thing that sets it apart.
 
 - **Target device**: Lenovo Xiaoxin Pad Pro 12.7 2025 (TB375FC), Android 15, 2944×1840 landscape.
   Nothing is device-specific; Android 8.0+ works.
-- **Players**: built on the standard **Android MediaSession** APIs, so Poweramp, VLC, NetEase Cloud
-  Music, QQ Music and any other conforming player work.
+- **Players**: built on the standard **Android MediaSession** APIs — **adapted for and tested with
+  Poweramp**; any other conforming player (VLC, NetEase Cloud Music, QQ Music and so on) **should
+  work as well**, and feedback is welcome.
 - **Languages**: Chinese and English, switched with one row in the settings — the bar, the panel and
   the notification all follow.
 - **Zero third-party dependencies**: plain framework APIs, no AndroidX, no Kotlin. About 105 KB.
@@ -220,6 +223,7 @@ part of this project that took the most work, and the thing that sets it apart.
 
 | Version | What is in it |
 | --- | --- |
+| **v1.0.1** | Fixes the Chinese name still shown by the system in an English interface: the English app name is now **FloatingMusicBar**, and the language chosen inside the app is **handed to the system** (Android 13+, so the launcher label, the app-info page and the installer follow) |
 | **v1.0** | **A shuffle/order engine of its own** (the app builds the queue, working around players whose folder queue is not recursive), **four panel switches** (shuffle/order, with/without sub-folders, repeat one, tap-carries-the-queue), the `X/XX` queue position, complete Chinese/English coverage, sub-folder song counts in the panel |
 | v0.22 – v0.29 | Iterations on the engine and the panel switches — see the Releases page |
 | v0.10 | Picking a song no longer turns shuffle off; the panel orders left to right, top to bottom again |

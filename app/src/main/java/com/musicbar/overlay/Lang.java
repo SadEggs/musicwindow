@@ -1,7 +1,10 @@
 package com.musicbar.overlay;
 
+import android.app.LocaleManager;
 import android.content.Context;
 import android.content.res.Configuration;
+import android.os.Build;
+import android.os.LocaleList;
 
 import java.util.Locale;
 
@@ -31,5 +34,40 @@ public final class Lang {
         Configuration config = new Configuration(base.getResources().getConfiguration());
         config.setLocale(mode == ENGLISH ? Locale.ENGLISH : Locale.SIMPLIFIED_CHINESE);
         return base.createConfigurationContext(config);
+    }
+
+    /**
+     * Hand the chosen language to the system as well, so that the parts of the interface Android
+     * draws for us follow it too: the launcher label, the app-info page and the installer all read
+     * the system locale rather than our resources, which is why the app could be in English while
+     * the icon under it still carried the Chinese name.
+     *
+     * <p>Android 13 and later; below that the label simply follows the system language. Only sent
+     * when it differs, because the system recreates the app's activities when it changes.
+     */
+    public static void applyToSystem(Context context) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+            return;
+        }
+        try {
+            LocaleManager manager = context.getSystemService(LocaleManager.class);
+            if (manager == null) {
+                return;
+            }
+            int mode = Prefs.lang(context);
+            LocaleList want;
+            if (mode == ENGLISH) {
+                want = LocaleList.forLanguageTags("en");
+            } else if (mode == CHINESE) {
+                want = LocaleList.forLanguageTags("zh-Hans");
+            } else {
+                want = LocaleList.getEmptyLocaleList();
+            }
+            if (!want.equals(manager.getApplicationLocales())) {
+                manager.setApplicationLocales(want);
+            }
+        } catch (Throwable ignored) {
+            // A system without the service, or one that refuses: the app still follows the setting.
+        }
     }
 }
