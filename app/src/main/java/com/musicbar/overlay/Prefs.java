@@ -166,7 +166,7 @@ public final class Prefs {
     public static final int ROUTE_URI = 3;
 
     public static int reshuffleMode(Context c) {
-        return clamp(sp(c).getInt(K_RESHUFFLE, RESHUFFLE_ALWAYS), 0, 4);
+        return clamp(sp(c).getInt(K_RESHUFFLE, RESHUFFLE_OFF), 0, 4);
     }
 
     public static int playRoute(Context c) {
