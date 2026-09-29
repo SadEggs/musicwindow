@@ -91,6 +91,7 @@ public class MusicBarView extends LinearLayout {
 
     private LinearLayout statusRow;
     private TextView timeView;
+    private TextView shuffleView;
     private TextView batteryText;
     private BatteryView batteryView;
     private final SimpleDateFormat clockFormat =
@@ -151,6 +152,17 @@ public class MusicBarView extends LinearLayout {
         if (on) {
             updateClock();
         }
+    }
+
+    /** Position in the app's own tree shuffle; zero hides it, which is the normal state. */
+    public void setShuffleInfo(int position, int total) {
+        if (shuffleView == null) {
+            return;
+        }
+        boolean on = position > 0 && total > 0 && Prefs.showStatus(getContext());
+        shuffleView.setVisibility(on ? VISIBLE : GONE);
+        shuffleView.setText(on
+                ? getResources().getString(R.string.shuffle_pos, position, total) : "");
     }
 
     private void updateClock() {
@@ -235,6 +247,16 @@ public class MusicBarView extends LinearLayout {
         timeView.setTextColor(STATUS_COLOR);
         statusRow.addView(timeView,
                 new LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT));
+
+        // Where the tree shuffle is, set away from the clock so the two do not read as one.
+        shuffleView = new TextView(ctx);
+        shuffleView.setTextSize(9f);
+        shuffleView.setTextColor(STATUS_COLOR);
+        shuffleView.setVisibility(GONE);
+        LayoutParams shuffleParams =
+                new LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT);
+        shuffleParams.leftMargin = dp(14);
+        statusRow.addView(shuffleView, shuffleParams);
 
         // Pushes the battery to the right edge.
         statusRow.addView(new View(ctx), new LayoutParams(0, 1, 1f));
