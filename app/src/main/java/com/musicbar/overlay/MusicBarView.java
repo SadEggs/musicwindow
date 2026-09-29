@@ -90,6 +90,7 @@ public class MusicBarView extends LinearLayout {
     private boolean swipeFired;
     private boolean pinned;
     private boolean idleAtDown;
+    private boolean swipeAllowed;
     private boolean lastPlaying;
     private boolean swipeMode;
     private float swipeDx;
@@ -499,6 +500,9 @@ public class MusicBarView extends LinearLayout {
                     // Remember whether the bar was dimmed when the finger landed: waking it
                     // up must not also pause the music.
                     idleAtDown = isDimmed();
+                    // A swipe only counts when the finger lands inside the outlined zone;
+                    // sliding along the rest of the bar must not switch songs.
+                    swipeAllowed = v == handleBox || touchInFrame(event.getX());
                     ui.postDelayed(longPressRunnable, LONG_PRESS_MS);
                     if (cb != null) {
                         cb.onUserActivity();
@@ -524,9 +528,11 @@ public class MusicBarView extends LinearLayout {
                         }
                         return true;
                     }
-                    // A swipe starts only after a deliberate sideways move, so a slightly
-                    // sloppy tap is still read as a tap.
-                    if (Math.abs(dx) > Math.max(slop * 3f, dp(SWIPE_START_DP))
+                    // A swipe starts only after a deliberate sideways move inside the framed
+                    // zone, so a slightly sloppy tap is still read as a tap and a slide along
+                    // the rest of the bar switches nothing.
+                    if (swipeAllowed
+                            && Math.abs(dx) > Math.max(slop * 3f, dp(SWIPE_START_DP))
                             && Math.abs(dx) > Math.abs(dy) * 1.5f) {
                         // Clearly sideways: never let this become a window drag.
                         ui.removeCallbacks(longPressRunnable);
@@ -608,6 +614,23 @@ public class MusicBarView extends LinearLayout {
             return false;
         }
         return getAlpha() < (idle + active) / 2f;
+    }
+
+    /**
+     * Whether a touch at this position inside the bar landed on the outlined swipe zone.
+     * The zone is the only place that switches songs, which is what the border is there to
+     * say; the rest of the bar answers taps and the long press that moves the window.
+     */
+    private boolean touchInFrame(float x) {
+        if (textStack == null || textStack.getWidth() == 0) {
+            return false;
+        }
+        int[] barPos = new int[2];
+        int[] framePos = new int[2];
+        getLocationOnScreen(barPos);
+        textStack.getLocationOnScreen(framePos);
+        float left = framePos[0] - barPos[0];
+        return x >= left && x <= left + textStack.getWidth();
     }
 
     private void handleTap(View v) {

@@ -111,8 +111,8 @@
   悬浮条和面板上的按钮都关掉了系统"触摸提示音"，所以外放时**任何操作都不会有提示音**。
   （若蓝牙时还听到不同的"嘟嘟"声，那是耳机自己在响应 AVRCP 切歌，App 无法控制。）
 - **单击条身文字区**：播放 / 暂停（文字区有**淡边框**标出可滑动区域，滑动时边框会点亮）。
-  注意：条处于**变淡的静止状态**时，**第一下点击只是把条点亮**（不会暂停音乐）—— 想点播放/暂停
-  请点第二下，或者点中间的播放按钮。这是为了避免"想让它变清楚一点，结果音乐被暂停了"。
+  注意：**只有框内滑动才会切歌**（0.14 起），框外区域横滑不会再误切歌；条处于**变淡的静止状态**时，
+  **第一下点击只是把条点亮**（不会暂停音乐）—— 想点播放/暂停请点第二下，或点中间的播放按钮。
 - **按钮**（上一曲 / 播放暂停 / 下一曲 / 钉子 / 文件夹）：**占满整条高度**、宽 48dp（播放键 54dp），
   轻按下会有**轻微触感反馈**，所以即使条很细也点得准
 - **长按条身后拖动**：挪到任意位置（松手后自动记住）
@@ -141,22 +141,20 @@
 **随机 + 循环模式**，歌曲真正切过去之后再放回去；模式没变就完全不动它。
 设置里的「**点歌时保持随机播放模式**」（默认开）可以关掉这个行为。
 
-> 关于实现：这两个模式在不同 Android 版本上的接口位置并不统一，**编译用的 `android.jar` 里
-> `PlaybackState` 既没有 `SHUFFLE_MODE_*` 常量也没有 `getShuffleMode()`**，直接调用根本编译不过
-> —— 所以本 App 先用**反射**尝试读取；**如果设备上根本读不到**（Poweramp 就是这种情况，状态页会
-> 显示 `随机接口=none`），就改用下面的办法：
+> 关于实现（**0.14 起改为"不动它"**）：Poweramp 的随机**不是开关，而是循环切换**
+> （顺序 → 随机歌曲 → 随机分类 → …）。实测发现：只要"按一下"它的随机按钮，档位就会换成下一档，
+> 所以任何"帮你按回去"的做法都会**改掉你在 Poweramp 里设的档位**。
 >
-> **播放器自己的通知栏按钮**。本 App 持有通知使用权，能直接看到播放器的媒体通知，而它的
-> **随机播放按钮就是播放器真正的开关**（图标会随开/关变化）。做法是：点歌前记下这个按钮的
-> **图标指纹**，点歌后再比一次 —— 图标变了，说明播放器自己把随机关掉了，就**按一下它的按钮**
-> 按回来；图标没变就什么也不做（绝不盲目切换，避免"本来没开随机"反被打开）。
+> 因此 0.14 的默认是「**完全不动**」—— App 不读也不写 Poweramp 的随机设置，保持你设置的样子。
+> 这条路上确实没有可用的读取接口（状态页 `随机接口=none`），Poweramp 只把随机发布成一个
+> **循环切换的自定义动作**（`自定义动作=SHUFFLE|REPEAT|…`），而循环动作无法"恢复到某一档"，
+> 只能一档档往下走。
 >
-> 设置里的「**点歌后恢复随机播放**」可选用哪种办法：**自动（推荐）** = 能读就用接口、读不到就用
-> 通知按钮；也可强制用**接口指令**或**播放器自定义动作**。状态页会显示 `随机接口=`、`通知按钮=`、
-> `自定义动作=`，按不动按钮时把这三项发我。
+> 设置里仍然保留了其它几种（仅在它被改动时按回 / 每次都按一次 / 用系统接口设定 / 按通知栏按钮），
+> 供不同播放器使用；但**对 Poweramp 推荐保持「完全不动」**。
+> 状态页会显示 `随机接口=`、`随机动作=`、`通知按钮=`、`自定义动作=`，便于判断别的播放器是否有更好的接口。
 >
-> 另外「**点播方式**」可以把点歌请求固定成 `按编号 / 按名称 / 按文件` —— 不同请求在播放器里可能走
-> 不同代码路径，如果其中某一种能自然保住随机播放，固定它就是最干净的解法。
+> 另外「**点播方式**」默认是`按文件`：直接播文件，**不需要遍历播放器的目录树**（这是之前点歌要等几秒的原因）。
 
 **暂停状态下点歌也已修复**：有些播放器（例如 Poweramp）在暂停时收到点播请求，
 会把新歌装进队列**但不开始播放**，旧版本因此误判失败并去试下一种，结果状态被搅乱。
@@ -390,9 +388,9 @@ Then tap **Start** in the app.
   off on the bar and the panel, so no system touch sound is heard either. A headset that beeps on its
   own when the track changes does so from its own firmware and cannot be controlled by any app.
 - **Tap the title area**: play / pause. The title area carries a faint **outline** marking the swipe
-  zone, which lights up while a swipe is in progress. When the bar is in its **dimmed resting state**,
-  the first tap only brings it back to full strength instead of pausing the music — tap once to wake
-  it, then again to toggle, or use the play button in the middle.
+  zone, which lights up while a swipe is in progress. Only a swipe that starts **inside that outline**
+  switches songs (from 0.14), so dragging along the rest of the bar no longer changes track. When the
+  bar is dimmed, the first tap only wakes it rather than pausing the music.
 - **Buttons** (previous / play-pause / next / pin / folder): they fill the whole height of the bar and
   are 48dp wide (54dp for play) with a light haptic tick, so they stay easy to hit on a thin bar.
 - **Long-press, then drag**: move it anywhere; the position is remembered.
@@ -422,19 +420,19 @@ used to turn shuffle off. The app now remembers the **shuffle and repeat** modes
 and puts them back once the song has really changed; if nothing changed, it does nothing at all. The
 setting "Keep shuffle when picking songs" (on by default) turns this off.
 
-> On the implementation: those accessors are not in a consistent place across Android versions, and
-> the `android.jar` this app compiles against publishes **neither `SHUFFLE_MODE_*` constants nor
-> `getShuffleMode()` on `PlaybackState`** — a direct call would not even compile. The app therefore
-> tries reflection first; where the device publishes nothing at all (Poweramp is such a case, and the
-> status page then says `随机接口=none`) it falls back to the player's **own notification button**,
-> which is the player's real shuffle switch and carries its state in its icon. That icon is
-> fingerprinted before a point-song and compared after it: if it changed, the player flipped the mode
-> itself and one press puts it back; if it did not change, nothing is pressed at all, so shuffle is
-> never switched on for someone who had it off.
+> On the implementation (from 0.14 the app simply **leaves it alone**): Poweramp's shuffle is not a
+> switch but a **cycle** (sequential → random songs → random categories → …). Pressing its shuffle
+> once therefore moves the setting on to the next mode rather than putting it back, so every attempt to
+> "help" it ends up changing the mode that was chosen in Poweramp. There is also no readable shuffle
+> accessor at all — the status page reports `随机接口=none`, and the player publishes shuffle only as
+> that cycling custom action (`自定义动作=SHUFFLE|REPEAT|…`).
 >
-> The setting "restore shuffle after a point-song" chooses the mechanism (automatic, transport command
-> or the player's own custom action), and a "point-song route" setting pins the request to media id,
-> search or file uri — if one of those routes keeps the player's shuffle, that is the cleanest fix.
+> So the default is now "never touch it": the app neither reads nor writes the player's shuffle mode and
+> leaves it exactly as it was set in Poweramp. The other mechanisms (press only when it changed, always
+> press once, transport command, notification button) remain selectable for players that offer
+> something better, and the status page reports `随机接口=`, `随机动作=`, `通知按钮=` and `自定义动作=`.
+> A "point-song route" setting also exists, defaulting to file uri, which needs no walk through the
+> player's browse tree — that walk was the several seconds a tapped song used to take.
 
 **Point-song while paused is fixed**: some players (Poweramp among them) accept the request, load
 the new track, and then just sit there because playback was paused — older builds misread that as a
