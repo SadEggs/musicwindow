@@ -206,25 +206,26 @@ public class OverlayService extends Service implements MediaBridge.Listener {
             // has to hold even while another shuffle is already running. The old check lived
             // inside playFromLibrary and was skipped exactly then, so tapping a song in a
             // sub-folder mid-shuffle played that one song and left the big folder's order alone.
-            if (Prefs.treePlay(OverlayService.this)) {
-                if (Prefs.panelShuffle(OverlayService.this)) {
-                    startEngine(song.folder, song, true);
-                } else {
-                    // Order mode: this one song, and the shuffle that may have been running is
-                    // stopped so nothing takes over when it ends.
-                    stopEngine();
-                    playFromLibrary(song);
-                }
-                return;
+            // No master switch here any more. The panel's own two buttons say what a tap means,
+            // and the settings flag that used to gate this stayed at false on devices upgraded
+            // from the release where it defaulted off - which switched the engine off with
+            // nothing on screen saying so, while All kept working because it never checked it.
+            if (Prefs.panelShuffle(OverlayService.this)) {
+                startEngine(song.folder, song, true, Prefs.deepShuffle(OverlayService.this));
+            } else {
+                // Order mode: this one song, and the shuffle that may have been running is
+                // stopped so nothing takes over when it ends.
+                stopEngine();
+                playFromLibrary(song);
             }
-            playFromLibrary(song);
         }
 
         @Override
         public void onPlayFolder(String folder) {
             // All plays this folder's branch through the app's own engine, in whichever mode the
             // panel is set to: shuffled, or straight through in the branch's own order.
-            startEngine(folder, null, Prefs.panelShuffle(OverlayService.this));
+            startEngine(folder, null, Prefs.panelShuffle(OverlayService.this),
+                    Prefs.deepShuffle(OverlayService.this));
         }
     };
 
@@ -789,7 +790,7 @@ public class OverlayService extends Service implements MediaBridge.Listener {
      * falls back to the player's own skip.
      */
     private boolean stepEngine(int delta) {
-        if (!Prefs.treePlay(this) || !engineOn || engineQueue.isEmpty()) {
+        if (!engineOn || engineQueue.isEmpty()) {
             return false;
         }
         int next = engineIndex + delta;
@@ -811,9 +812,12 @@ public class OverlayService extends Service implements MediaBridge.Listener {
     }
 
     /** Start shuffling a folder's whole tree, beginning with the song the user tapped. */
-    private void startEngine(String folder, MediaLibrary.Song first, boolean shuffle) {
+    private void startEngine(String folder, MediaLibrary.Song first, boolean shuffle, boolean deep) {
         engineShuffle = shuffle;
-        List<MediaLibrary.Song> songs = MediaLibrary.get(this).songsInTree(folder);
+        // Deep is the whole point: the branch below this folder, or just the folder's own songs.
+        List<MediaLibrary.Song> songs = deep
+                ? MediaLibrary.get(this).songsInTree(folder)
+                : MediaLibrary.get(this).songsIn(folder);
         if (songs.isEmpty()) {
             Toast.makeText(this, getString(R.string.playlist_empty), Toast.LENGTH_SHORT).show();
             return;
