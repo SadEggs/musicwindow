@@ -200,7 +200,10 @@ public class OverlayService extends Service implements MediaBridge.Listener {
 
         @Override
         public void onPlayFolder(String folder) {
-            playFolderTree(folder);
+            // The button the user naturally presses for "shuffle this folder". It used to
+            // write a playlist and hand it over, which Poweramp cannot play; now it starts
+            // this app's own tree shuffle, so no playlist file is involved at all.
+            startEngine(folder, null);
         }
     };
 
@@ -473,7 +476,9 @@ public class OverlayService extends Service implements MediaBridge.Listener {
         // leaves shuffle covering one folder. When this folder is a tree and the setting is
         // on, hand over the same playlist the all button writes, rotated so the tapped song
         // comes first: the queue is then the whole tree and shuffle covers all of it.
-        if (Prefs.treePlay(this) && treeIsBigger(song.folder)) {
+        // engineOn is set before the engine plays anything, so this guard is also what stops
+        // the engine's own requests from re-entering here and starting over and over.
+        if (!engineOn && Prefs.treePlay(this) && treeIsBigger(song.folder)) {
             startEngine(song.folder, song);
             return;
         }
