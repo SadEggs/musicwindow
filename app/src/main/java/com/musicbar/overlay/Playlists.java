@@ -110,17 +110,48 @@ public final class Playlists {
     }
 
     /**
-     * The one folder this app writes into: inside the standard music folder, so a player
-     * that scans there still lists the playlist, and kept apart from the user's own files.
-     * Falls back to the app's private external folder when that location is not writable.
+     * Where the one playlist file lives: the root of the user's own music tree, so the
+     * player's scan is certain to cover it. A playlist the player has not scanned cannot be
+     * played from its own list, and that list is the only route that reliably takes a whole
+     * playlist rather than a single track.
      */
     static File playlistDir() {
-        File music = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC);
-        File dir = new File(music, "MusicBar");
-        if ((dir.isDirectory() || dir.mkdirs()) && dir.canWrite()) {
-            return dir;
+        File root = musicRoot();
+        if (root != null && (root.isDirectory() || root.mkdirs()) && root.canWrite()) {
+            return root;
         }
-        return new File(Environment.getExternalStorageDirectory(), "MusicBar");
+        return Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC);
+    }
+
+    /** The deepest folder that still contains every folder the library holds. */
+    private static File musicRoot() {
+        String common = null;
+        for (String folder : MediaLibrary.foldersSnapshot()) {
+            if (folder == null || folder.isEmpty()) {
+                continue;
+            }
+            common = common == null ? folder : commonPrefix(common, folder);
+        }
+        if (common == null) {
+            return null;
+        }
+        // Never as far up as the storage root itself: a file there can sit outside every
+        // folder the player actually scans.
+        String storage = Environment.getExternalStorageDirectory().getAbsolutePath();
+        return common.length() > storage.length() + 1 ? new File(common) : null;
+    }
+
+    private static String commonPrefix(String a, String b) {
+        int limit = Math.min(a.length(), b.length());
+        int i = 0;
+        while (i < limit && a.charAt(i) == b.charAt(i)) {
+            i++;
+        }
+        if (i == limit) {
+            return a.substring(0, i);
+        }
+        int slash = a.lastIndexOf('/', i);
+        return slash <= 0 ? "" : a.substring(0, slash);
     }
 
     /** The playlist file, whether or not it has been written yet. */
@@ -136,6 +167,9 @@ public final class Playlists {
     public static int cleanup() {
         int removed = 0;
         removed += deleteIn(playlistDir());
+        // 0.17 kept its file in a folder of its own under /Music.
+        File music = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC);
+        removed += deleteIn(new File(music, "MusicBar"));
         // 0.16 wrote one file per folder, inside the folder holding the songs.
         for (String folder : MediaLibrary.foldersSnapshot()) {
             if (folder == null || folder.isEmpty()) {

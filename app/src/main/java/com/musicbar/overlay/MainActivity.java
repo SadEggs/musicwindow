@@ -143,6 +143,13 @@ public class MainActivity extends Activity {
         addCheckBox(R.string.set_sub_songs, Prefs.K_SUB_SONGS, true);
         addNote(R.string.set_collapse_hint);
 
+        // ---- language and the status strip -------------------------------------
+        addChoice(R.string.set_lang, Prefs.K_LANG, Prefs.lang(this),
+                new int[]{R.string.lang_system, R.string.lang_zh, R.string.lang_en});
+        addNote(R.string.lang_hint);
+        addCheckBox(R.string.set_show_status, Prefs.K_SHOW_STATUS, true);
+        addNote(R.string.status_hint);
+
         // ---- advanced ---------------------------------------------------------
         addSection(R.string.sec_adv);
         addTextInput(R.string.set_pref_pkg, Prefs.K_PREF_PKG, Prefs.DEFAULT_PKG);
@@ -172,8 +179,24 @@ public class MainActivity extends Activity {
     }
 
     @Override
+    protected void attachBaseContext(Context base) {
+        super.attachBaseContext(Lang.wrap(base));
+    }
+
+    /** The language this screen was built in; a change rebuilds it. */
+    private int shownLang = -1;
+
+    @Override
     protected void onResume() {
         super.onResume();
+        int lang = Prefs.lang(this);
+        if (shownLang < 0) {
+            shownLang = lang;
+        } else if (shownLang != lang) {
+            shownLang = lang;
+            recreate();
+            return;
+        }
         refreshStatus();
         if (!notificationAskDone
                 && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU

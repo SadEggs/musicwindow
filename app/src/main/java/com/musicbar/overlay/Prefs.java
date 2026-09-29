@@ -42,6 +42,12 @@ public final class Prefs {
     /** Whether a folder in the library panel also lists the songs of its sub-folders. */
     public static final String K_SUB_SONGS = "sub_songs";
 
+    /** The interface language: follow the system, Chinese, or English. */
+    public static final String K_LANG = "lang";
+
+    /** Whether the bar shows the clock and the battery. */
+    public static final String K_SHOW_STATUS = "show_status";
+
     public static final String EDGE_TOP = "top";
     public static final String EDGE_BOTTOM = "bottom";
     public static final String DEFAULT_PKG = "com.maxmpz.audioplayer";
@@ -192,6 +198,15 @@ public final class Prefs {
      */
     public static boolean showSubSongs(Context c) {
         return sp(c).getBoolean(K_SUB_SONGS, true);
+    }
+
+    /** 0 = follow the system, 1 = Chinese, 2 = English. */
+    public static int lang(Context c) {
+        return sp(c).getInt(K_LANG, Lang.SYSTEM);
+    }
+
+    public static boolean showStatus(Context c) {
+        return sp(c).getBoolean(K_SHOW_STATUS, true);
     }
 
     private static int clamp(int value, int min, int max) {
