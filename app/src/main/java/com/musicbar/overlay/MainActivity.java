@@ -52,6 +52,7 @@ public class MainActivity extends Activity {
     private TextView batteryRow;
     private TextView notificationRow;
     private TextView libraryRow;
+    private TextView filesRow;
 
     private final Handler ui = new Handler(Looper.getMainLooper());
     private Runnable pendingApply;
@@ -83,6 +84,7 @@ public class MainActivity extends Activity {
         batteryRow = addPermRow(R.string.perm_batt, v -> requestIgnoreBattery());
         notificationRow = addPermRow(R.string.perm_notif, v -> requestNotificationPermission());
         libraryRow = addPermRow(R.string.perm_library, v -> requestLibraryPermission());
+        filesRow = addPermRow(R.string.perm_files, v -> requestAllFilesPermission());
 
         // ---- start / stop -----------------------------------------------------
         addSection(R.string.sec_run);
@@ -175,6 +177,7 @@ public class MainActivity extends Activity {
         setPermRow(batteryRow, R.string.perm_batt, battery);
         setPermRow(notificationRow, R.string.perm_notif, notification);
         setPermRow(libraryRow, R.string.perm_library, hasLibraryPermission());
+        setPermRow(filesRow, R.string.perm_files, Playlists.allowed(this));
 
         StringBuilder sb = new StringBuilder();
         sb.append(getString(OverlayService.running
@@ -429,6 +432,30 @@ public class MainActivity extends Activity {
         } else {
             requestPermissions(new String[]{Manifest.permission.READ_EXTERNAL_STORAGE},
                     REQUEST_LIBRARY);
+        }
+    }
+
+    /**
+     * "All files access" is only needed to write the playlist file the "whole folder"
+     * button hands to the player. Before Android 11 the ordinary storage permission is
+     * enough, and the row is shown as granted in that case.
+     */
+    private void requestAllFilesPermission() {
+        if (Playlists.allowed(this)) {
+            return;
+        }
+        try {
+            startActivity(new Intent(
+                    Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION,
+                    Uri.parse("package:" + getPackageName())));
+            return;
+        } catch (Throwable ignored) {
+            // Some builds only offer the general list, so fall through to it.
+        }
+        try {
+            startActivity(new Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION));
+        } catch (Throwable ignored) {
+            openAppSettings();
         }
     }
 

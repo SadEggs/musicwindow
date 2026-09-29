@@ -19,6 +19,9 @@ import android.view.Gravity;
 import android.view.WindowManager;
 import android.widget.Toast;
 
+import java.io.File;
+import java.util.List;
+
 /**
  * Foreground service that owns the overlay window.
  */
@@ -185,6 +188,11 @@ public class OverlayService extends Service implements MediaBridge.Listener {
         @Override
         public void onPlaySong(MediaLibrary.Song song) {
             playFromLibrary(song);
+        }
+
+        @Override
+        public void onPlayFolder(String folder) {
+            playFolderTree(folder);
         }
     };
 
@@ -574,6 +582,47 @@ public class OverlayService extends Service implements MediaBridge.Listener {
      * back to off while doing it. How to undo that depends on what the player exposes, so
      * the settings page picks the mechanism.
      */
+    /**
+     * Hand a whole folder branch to the player as an .m3u playlist, so the player builds the
+     * queue itself. Poweramp keeps a folder's own queue to that folder's songs and treats
+     * sub-folders as separate entries, so this is the only way a shuffle can reach a branch
+     * deeper than one level - and because the player opens the file like any other playlist,
+     * shuffle, gapless switching and every audio setting stay inside the player.
+     */
+    private void playFolderTree(String folder) {
+        MediaLibrary library = MediaLibrary.get(this);
+        List<MediaLibrary.Song> songs = library.songsInTree(folder);
+        if (songs.isEmpty()) {
+            Toast.makeText(this, getString(R.string.playlist_empty), Toast.LENGTH_SHORT).show();
+            return;
+        }
+        if (!Playlists.allowed(this)) {
+            Toast.makeText(this, getString(R.string.playlist_need_perm), Toast.LENGTH_LONG).show();
+            return;
+        }
+        final File file = Playlists.write(this, folder, songs);
+        if (file == null) {
+            Toast.makeText(this, getString(R.string.playlist_failed), Toast.LENGTH_LONG).show();
+            return;
+        }
+        final MediaBridge bridge = MediaBridge.get();
+        final String before = bridge.trackSignature();
+        Toast.makeText(this, getString(R.string.playlist_created, songs.size()),
+                Toast.LENGTH_SHORT).show();
+        if (!bridge.playUri(Playlists.uriOf(file))) {
+            return;
+        }
+        // Some players take a playlist only from their own list, so say where the file is
+        // instead of leaving the tap looking like it did nothing.
+        handler.postDelayed(() -> {
+            String now = bridge.trackSignature();
+            if (now == null || now.equals(before)) {
+                Toast.makeText(this, getString(R.string.playlist_manual, file.getName()),
+                        Toast.LENGTH_LONG).show();
+            }
+        }, 2500L);
+    }
+
     private void restoreShuffle() {
         MediaBridge bridge = MediaBridge.get();
         int mode = Prefs.reshuffleMode(this);
