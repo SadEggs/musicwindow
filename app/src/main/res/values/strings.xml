@@ -123,6 +123,8 @@
     <string name="lang_hint">切换语言后本页会自动重开；悬浮条点最下面的「应用」生效。</string>
     <string name="set_show_status">悬浮条显示时间与电量</string>
     <string name="status_hint">左上角是时间（时:分:秒），右上角是长方形电池图标加电量百分比。</string>
+    <string name="set_tree_play">点一首歌也按整个文件夹树播放</string>
+    <string name="tree_play_hint">打开时：在面板里点一首歌，会把「整个文件夹树」做成播放列表交给播放器，你点的这首歌排在第一位，随机范围覆盖所有子文件夹。关掉时：点歌只播该文件夹本身（Poweramp 的行为是不含子文件夹）。</string>
     <string name="lib_play_folder">▶ 全部</string>
     <string name="cd_play_folder">把当前文件夹（含所有子文件夹）做成播放列表交给播放器，随机范围就是这个文件夹</string>
     <string name="playlist_empty">这个文件夹里没有歌曲</string>

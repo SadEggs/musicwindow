@@ -48,6 +48,9 @@ public final class Prefs {
     /** Whether the bar shows the clock and the battery. */
     public static final String K_SHOW_STATUS = "show_status";
 
+    /** Whether tapping one song plays its folder's whole tree instead of the folder alone. */
+    public static final String K_TREE_PLAY = "tree_play";
+
     public static final String EDGE_TOP = "top";
     public static final String EDGE_BOTTOM = "bottom";
     public static final String DEFAULT_PKG = "com.maxmpz.audioplayer";
@@ -203,6 +206,10 @@ public final class Prefs {
     /** 0 = follow the system, 1 = Chinese, 2 = English. */
     public static int lang(Context c) {
         return sp(c).getInt(K_LANG, Lang.SYSTEM);
+    }
+
+    public static boolean treePlay(Context c) {
+        return sp(c).getBoolean(K_TREE_PLAY, true);
     }
 
     public static boolean showStatus(Context c) {

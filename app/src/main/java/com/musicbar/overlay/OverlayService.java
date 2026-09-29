@@ -24,6 +24,7 @@ import android.widget.Toast;
 
 import java.io.File;
 import java.util.List;
+import java.util.ArrayList;
 
 /**
  * Foreground service that owns the overlay window.
@@ -53,6 +54,9 @@ public class OverlayService extends Service implements MediaBridge.Listener {
     private long lastActivity;
     private int dragBaseX;
     private int dragBaseY;
+
+    /** The folder the user was last working in, so the panel stays where they left it. */
+    private String anchorFolder;
 
     private final Handler handler = new Handler(Looper.getMainLooper());
     private DisplayManager displayManager;
@@ -388,6 +392,13 @@ public class OverlayService extends Service implements MediaBridge.Listener {
             }
             startFolder = library.findFolder(bridge.title(), bridge.artist());
         }
+        // Prefer the folder the user was last working in. Looking the playing track up by
+        // title lands in whichever folder happens to hold a song of that name first, which
+        // is how the panel used to jump to a different folder after a track change.
+        if (anchorFolder != null && !anchorFolder.isEmpty()
+                && MediaLibrary.get(this).songCountInTree(anchorFolder) > 0) {
+            startFolder = anchorFolder;
+        }
         panel.open(startFolder);
 
         WindowManager.LayoutParams lp = new WindowManager.LayoutParams(
@@ -454,6 +465,18 @@ public class OverlayService extends Service implements MediaBridge.Listener {
 
         Toast.makeText(this, getString(R.string.toast_play_searching, song.title),
                 Toast.LENGTH_SHORT).show();
+
+        // A single song makes the player build its queue from the song's own folder, and in
+        // Poweramp that means that folder's own files and nothing below it - which is what
+        // makes the sub-folders disappear from the queue as soon as the track changes, and
+        // leaves shuffle covering one folder. When this folder is a tree and the setting is
+        // on, hand over the same playlist the all button writes, rotated so the tapped song
+        // comes first: the queue is then the whole tree and shuffle covers all of it.
+        if (Prefs.treePlay(this) && treeIsBigger(song.folder)) {
+            playFolderTree(song.folder, song);
+            return;
+        }
+        anchorFolder = song.folder;
 
         if (Prefs.playRoute(this) == Prefs.ROUTE_URI) {
             // Playing the file itself needs no walk through the player's browse tree, which
@@ -599,8 +622,33 @@ public class OverlayService extends Service implements MediaBridge.Listener {
      * shuffle, gapless switching and every audio setting stay inside the player.
      */
     private void playFolderTree(String folder) {
+        playFolderTree(folder, null);
+    }
+
+    /**
+     * Play a folder's whole tree through a playlist the player itself will accept. A tapped
+     * song is moved to the front, so a play that is not shuffled still starts with it.
+     */
+    private void playFolderTree(String folder, MediaLibrary.Song first) {
         MediaLibrary library = MediaLibrary.get(this);
         List<MediaLibrary.Song> songs = library.songsInTree(folder);
+        anchorFolder = folder;
+        if (first != null && songs.size() > 1) {
+            List<MediaLibrary.Song> ordered = new ArrayList<>(songs.size());
+            for (MediaLibrary.Song s : songs) {
+                if (sameSong(s, first)) {
+                    ordered.add(s);
+                }
+            }
+            for (MediaLibrary.Song s : songs) {
+                if (!sameSong(s, first)) {
+                    ordered.add(s);
+                }
+            }
+            if (ordered.size() == songs.size()) {
+                songs = ordered;
+            }
+        }
         if (songs.isEmpty()) {
             Toast.makeText(this, getString(R.string.playlist_empty), Toast.LENGTH_SHORT).show();
             return;
@@ -657,6 +705,20 @@ public class OverlayService extends Service implements MediaBridge.Listener {
             Toast.makeText(this, getString(R.string.playlist_manual, file.getName()),
                     Toast.LENGTH_LONG).show();
         }));
+    }
+
+    /** The same file, as far as the library is concerned. */
+    private boolean sameSong(MediaLibrary.Song a, MediaLibrary.Song b) {
+        return a != null && b != null && a.path != null && a.path.equals(b.path);
+    }
+
+    /** True when a folder holds fewer songs than its whole tree, i.e. it has sub-folders. */
+    private boolean treeIsBigger(String folder) {
+        if (folder == null || folder.isEmpty()) {
+            return false;
+        }
+        MediaLibrary library = MediaLibrary.get(this);
+        return library.songCountInTree(folder) > library.songCountIn(folder);
     }
 
     /** The player can accept the request and still not start; then the manual route is next. */

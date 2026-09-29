@@ -123,6 +123,8 @@
     <string name="lang_hint">This page reopens itself after a change; press Apply at the bottom to update the bar.</string>
     <string name="set_show_status">Show the clock and battery in the bar</string>
     <string name="status_hint">The clock sits at the top left as hours:minutes:seconds, the battery at the top right as a rectangular icon with a percentage.</string>
+    <string name="set_tree_play">Play the whole folder tree when one song is tapped</string>
+    <string name="tree_play_hint">On: tapping one song in the panel turns the whole folder tree into a playlist for the player, with the tapped song first, so shuffle covers every subfolder. Off: tapping a song plays that folder alone, which on Poweramp means nothing below it.</string>
     <string name="lib_play_folder">▶ All</string>
     <string name="cd_play_folder">Build a playlist from the current folder (including all subfolders) and hand it to the player; the shuffle scope is that folder</string>
     <string name="playlist_empty">No songs in this folder</string>
