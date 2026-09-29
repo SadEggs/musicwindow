@@ -128,6 +128,9 @@
     <string name="engine_started">整树随机开始：共 %1$d 首</string>
     <string name="shuffle_pos">随机 %1$d/%2$d</string>
     <string name="folder_songs">%1$d 首</string>
+    <string name="panel_shuffle_on">🔀 随机</string>
+    <string name="panel_shuffle_off">➡ 顺序</string>
+    <string name="panel_shuffle_hint">随机：点「▶ 全部」在这个文件夹的整棵树里随机；点某一首歌，这首歌就是随机队列的第一首。顺序：点歌只放这一首。</string>
     <string name="btn_check_playlist">检查播放器能否识别播放列表</string>
     <string name="check_running">正在询问播放器…</string>
     <string name="check_found">播放器认识它：媒体 ID = %1$s，来源 = %2$s。那就把上面的开关打开，点歌会自动播整棵树。</string>
@@ -144,7 +147,7 @@
     <string name="sec_about">关于</string>
     <string name="about_author">作者主页（GitHub）</string>
     <string name="about_repo">软件仓库 / 问题反馈（GitHub）</string>
-    <string name="about_credit">原作者 SadEggs，MIT 许可。这是一个个人自用改版，原仓库地址见上。</string>
+    <string name="about_credit">作者 SadEggs，MIT 许可。</string>
     <string name="btn_clean_playlists">清理生成的播放列表</string>
     <string name="clean_done">已清理 %1$d 个播放列表文件</string>
     <string name="clean_none">没有需要清理的播放列表文件</string>

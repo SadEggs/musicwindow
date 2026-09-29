@@ -201,15 +201,30 @@ public class OverlayService extends Service implements MediaBridge.Listener {
 
         @Override
         public void onPlaySong(MediaLibrary.Song song) {
+            // A tap is a request to shuffle where that song lives: that folder on its own when it
+            // is flat, the whole branch below it when it is not, and the tapped song first. This
+            // has to hold even while another shuffle is already running. The old check lived
+            // inside playFromLibrary and was skipped exactly then, so tapping a song in a
+            // sub-folder mid-shuffle played that one song and left the big folder's order alone.
+            if (Prefs.treePlay(OverlayService.this)) {
+                if (Prefs.panelShuffle(OverlayService.this)) {
+                    startEngine(song.folder, song, true);
+                } else {
+                    // Order mode: this one song, and the shuffle that may have been running is
+                    // stopped so nothing takes over when it ends.
+                    stopEngine();
+                    playFromLibrary(song);
+                }
+                return;
+            }
             playFromLibrary(song);
         }
 
         @Override
         public void onPlayFolder(String folder) {
-            // The button the user naturally presses for "shuffle this folder". It used to
-            // write a playlist and hand it over, which Poweramp cannot play; now it starts
-            // this app's own tree shuffle, so no playlist file is involved at all.
-            startEngine(folder, null);
+            // All plays this folder's branch through the app's own engine, in whichever mode the
+            // panel is set to: shuffled, or straight through in the branch's own order.
+            startEngine(folder, null, Prefs.panelShuffle(OverlayService.this));
         }
     };
 
@@ -482,12 +497,6 @@ public class OverlayService extends Service implements MediaBridge.Listener {
         // leaves shuffle covering one folder. When this folder is a tree and the setting is
         // on, hand over the same playlist the all button writes, rotated so the tapped song
         // comes first: the queue is then the whole tree and shuffle covers all of it.
-        // engineOn is set before the engine plays anything, so this guard is also what stops
-        // the engine's own requests from re-entering here and starting over and over.
-        if (!engineOn && Prefs.treePlay(this) && treeIsBigger(song.folder)) {
-            startEngine(song.folder, song);
-            return;
-        }
         anchorFolder = song.folder;
         engineSongFolder = song.folder;
 
@@ -757,6 +766,7 @@ public class OverlayService extends Service implements MediaBridge.Listener {
     private final List<MediaLibrary.Song> engineQueue = new ArrayList<>();
     private boolean engineOn;
     private String engineSongFolder;
+    private boolean engineShuffle = true;
     private int engineIndex;
     private long engineQuietUntil;
     private String engineSeen;
@@ -784,11 +794,13 @@ public class OverlayService extends Service implements MediaBridge.Listener {
         }
         int next = engineIndex + delta;
         if (next >= engineQueue.size()) {
-            // The end of the list: a fresh order rather than the same one again.
-            List<MediaLibrary.Song> again = new ArrayList<>(engineQueue);
-            Collections.shuffle(again);
-            engineQueue.clear();
-            engineQueue.addAll(again);
+            // The end of the list: a fresh order when shuffling, otherwise the branch again.
+            if (engineShuffle) {
+                List<MediaLibrary.Song> again = new ArrayList<>(engineQueue);
+                Collections.shuffle(again);
+                engineQueue.clear();
+                engineQueue.addAll(again);
+            }
             next = 0;
         } else if (next < 0) {
             next = engineQueue.size() - 1;
@@ -799,7 +811,8 @@ public class OverlayService extends Service implements MediaBridge.Listener {
     }
 
     /** Start shuffling a folder's whole tree, beginning with the song the user tapped. */
-    private void startEngine(String folder, MediaLibrary.Song first) {
+    private void startEngine(String folder, MediaLibrary.Song first, boolean shuffle) {
+        engineShuffle = shuffle;
         List<MediaLibrary.Song> songs = MediaLibrary.get(this).songsInTree(folder);
         if (songs.isEmpty()) {
             Toast.makeText(this, getString(R.string.playlist_empty), Toast.LENGTH_SHORT).show();
@@ -813,7 +826,9 @@ public class OverlayService extends Service implements MediaBridge.Listener {
                 }
             }
         }
-        Collections.shuffle(rest);
+        if (shuffle) {
+            Collections.shuffle(rest);
+        }
         engineQueue.clear();
         if (first != null) {
             engineQueue.add(first);
@@ -880,11 +895,14 @@ public class OverlayService extends Service implements MediaBridge.Listener {
         }
         engineIndex++;
         if (engineIndex >= engineQueue.size()) {
-            // Through the tree once, then a fresh order rather than a repeat of the same one.
-            List<MediaLibrary.Song> again = new ArrayList<>(engineQueue);
-            Collections.shuffle(again);
-            engineQueue.clear();
-            engineQueue.addAll(again);
+            // Through the branch once, then a fresh order when shuffling: in order mode it just
+            // starts the branch again from its first song.
+            if (engineShuffle) {
+                List<MediaLibrary.Song> again = new ArrayList<>(engineQueue);
+                Collections.shuffle(again);
+                engineQueue.clear();
+                engineQueue.addAll(again);
+            }
             engineIndex = 0;
         }
         enginePlayCurrent();

@@ -51,6 +51,9 @@ public final class Prefs {
     /** Whether tapping one song plays its folder's whole tree instead of the folder alone. */
     public static final String K_TREE_PLAY = "tree_play";
 
+    /** Whether the panel's play actions shuffle, or play the branch straight through. */
+    public static final String K_PANEL_SHUFFLE = "panel_shuffle";
+
     public static final String EDGE_TOP = "top";
     public static final String EDGE_BOTTOM = "bottom";
     public static final String DEFAULT_PKG = "com.maxmpz.audioplayer";
@@ -212,6 +215,15 @@ public final class Prefs {
         // On by default: it is the only way left to shuffle a whole folder tree, now that the
         // playlist route is known not to work with Poweramp. The cost is the seamless join.
         return sp(c).getBoolean(K_TREE_PLAY, true);
+    }
+
+    /** The panel's mode: true shuffles the branch, false plays it in its own order. */
+    public static boolean panelShuffle(Context c) {
+        return sp(c).getBoolean(K_PANEL_SHUFFLE, true);
+    }
+
+    public static void setPanelShuffle(Context c, boolean value) {
+        sp(c).edit().putBoolean(K_PANEL_SHUFFLE, value).apply();
     }
 
     public static boolean showStatus(Context c) {

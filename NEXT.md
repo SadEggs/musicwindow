@@ -7,7 +7,14 @@
   `setShuffleInfo(position, total)`，position<=0 时隐藏；`OverlayService.enginePlayCurrent()`
   里调用 `bar.setShuffleInfo(engineIndex + 1, engineQueue.size())`，`stopEngine()` 里清 0。
   文案 `R.string.shuffle_pos` =「随机 %1$d/%2$d」/「Shuffle %1$d/%2$d」。
-- **只剩需求 3 未做**；需求 2 用户待确认。
+- **v0.25**：修两个实测 bug（切歌留在树内、暂停/换文件夹后随机起不来）。
+- **v0.26**：① 切歌改为在引擎列表里前后走（`stepEngine(int delta)`，只有走到末尾才重新洗牌）；
+  ② 子文件夹行显示「名字 · N 首」（N = `songCountInTree`，文案 `R.string.folder_songs`），
+  并**移除**了 `FolderPanelView` 里平铺子文件夹歌曲的那一段（`Prefs.showSubSongs` 因此失效）；
+  ③ 主界面新增 `queuePosView`（`MusicBarView`），在 `statusRow` 之下、专辑封面之上，
+  靠左、`leftMargin = dp(6)`，显示 `X/XX`（与状态栏同一个 `setShuffleInfo` 一起更新）。
+- **待定/未做**：顺序队列（非随机）的位置无法显示 —— Poweramp 不公开自己的播放队列；
+  设置里「显示子文件夹歌曲」开关已失效，待清理。
 
 ## v0.24 实测反馈的两个 bug（已在 v0.25 修复）
 
