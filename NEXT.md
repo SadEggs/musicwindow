@@ -27,6 +27,17 @@
   Windows PowerShell 会写入 UTF-8 BOM，Gradle 解析 `build.gradle` 直接失败（只报 "1 error"，看不出原因）。
   静态检查已加"任何 .gradle/.xml/.java 都不许有 BOM"。另外：给 GitHub API 传长文本时，
   **不要内联进 shell 的 node -e**（双引号会被截断），写成临时文件再读。
+  ⚠️ 因为宿主用的是 **Windows PowerShell 5.1**（`$PSVersionTable` 实测 5.1.19041）：
+  它**没有 `-Encoding utf8NoBOM`**，而 `-Encoding UTF8` **会写 BOM**。要改仓库文件请用 edit 工具，
+  或 `[System.IO.File]::WriteAllText($p,$t,(New-Object System.Text.UTF8Encoding($false)))`。
+- **v0.29**：面板再加两个开关。
+  ① `Prefs.K_SINGLE_REPEAT`（默认关）+ `singleRepeat`：开 → 点歌只重复这一首
+  （`OverlayService.startSingle(song)`：队列只放这一首 + `engineSingle = true` + 切歌点用
+  `ENGINE_SINGLE_LEAD_MS = 300L` 而不是 `ENGINE_LEAD_MS = 1500L`，避免每遍结尾被切掉）。
+  ② `Prefs.K_TAP_QUEUE`（默认开）+ `tapQueue`：开 → 点歌时这首歌作为队列第一首
+  （顺序模式下改为**从这首歌往后轮转**整个文件夹，不是跳回第一首）。
+  `onPlaySong` 的判定顺序：`singleRepeat` → `tapQueue` → 否则只播这一首。
+  面板头部按钮：模式、子文件夹、单曲循环、点歌带队列（`FolderPanelView.makeSwitch(ctx, hint, flip)` 统一构造）。
 - **待定/未做**：顺序队列（非随机）的位置无法显示 —— Poweramp 不公开自己的播放队列；
   设置里「显示子文件夹歌曲」开关已失效，待清理。
 
