@@ -124,7 +124,7 @@
     <string name="set_show_status">Show the clock and battery in the bar</string>
     <string name="status_hint">The clock sits at the top left as hours:minutes:seconds, the battery at the top right as a rectangular icon with a percentage.</string>
     <string name="set_tree_play">Shuffle the whole tree (the app picks the order)</string>
-    <string name="tree_play_hint">On by default. Poweramp's folder queue holds one folder and it does not take playlists from outside, so the app picks the order itself and hands over the next song about 1.5 seconds before each one ends. The cost is a gap of roughly 0.3 to 1 second between tracks, and occasionally a moment of the player's own next track. Turning it off restores the original behaviour.</string>
+    <string name="tree_play_hint">On by default. Poweramp\'s folder queue holds one folder and it does not take playlists from outside, so the app picks the order itself and hands over the next song about 1.5 seconds before each one ends. The cost is a gap of roughly 0.3 to 1 second between tracks, and occasionally a moment of the player\'s own next track. Turning it off restores the original behaviour.</string>
     <string name="engine_started">Tree shuffle started: %1$d songs</string>
     <string name="btn_check_playlist">Check whether the player knows the playlist</string>
     <string name="check_running">Asking the player...</string>
