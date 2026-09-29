@@ -4,6 +4,7 @@ import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
+import android.content.Context;
 import android.app.Service;
 import android.content.Intent;
 import android.graphics.PixelFormat;
@@ -197,6 +198,11 @@ public class OverlayService extends Service implements MediaBridge.Listener {
             playFolderTree(folder);
         }
     };
+
+    @Override
+    protected void attachBaseContext(Context base) {
+        super.attachBaseContext(Lang.wrap(base));
+    }
 
     @Override
     public void onCreate() {
@@ -631,11 +637,30 @@ public class OverlayService extends Service implements MediaBridge.Listener {
         }
         Toast.makeText(this, getString(R.string.playlist_created, songs.size()),
                 Toast.LENGTH_SHORT).show();
-        if (uri == null || !bridge.playUri(uri)) {
-            return;
-        }
-        // Some players take a playlist only from their own list, so say where the file is
-        // instead of leaving the tap looking like it did nothing.
+        // First: if the player already has this playlist in its own library, ask for it by
+        // media id - that is what tapping it inside the player does, and it takes the whole
+        // list. Second: hand it over as a content URI. Third: if nothing started, say where
+        // the file is so it can be opened by hand.
+        final PlayerBrowser browser = PlayerBrowser.get(this);
+        final String name = file.getName();
+        final String title = name.endsWith(".m3u")
+                ? name.substring(0, name.length() - 4) : name;
+        browser.findMediaId(title, "", 2500L, (mediaId, how) -> handler.post(() -> {
+            if (mediaId != null && !mediaId.isEmpty() && bridge.playFromMediaId(mediaId)) {
+                watchPlaylistStart(bridge, before, file);
+                return;
+            }
+            if (uri != null && bridge.playUri(uri)) {
+                watchPlaylistStart(bridge, before, file);
+                return;
+            }
+            Toast.makeText(this, getString(R.string.playlist_manual, file.getName()),
+                    Toast.LENGTH_LONG).show();
+        }));
+    }
+
+    /** The player can accept the request and still not start; then the manual route is next. */
+    private void watchPlaylistStart(MediaBridge bridge, String before, File file) {
         handler.postDelayed(() -> {
             String now = bridge.trackSignature();
             if (now == null || now.equals(before)) {

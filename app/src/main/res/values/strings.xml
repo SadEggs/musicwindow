@@ -116,6 +116,13 @@
     <string name="diag_queue">队列</string>
     <string name="set_folder_play">按文件夹播放（随机的范围=文件夹）</string>
     <string name="set_sub_songs">文件夹内一并显示子文件夹的歌曲（显示为 子目录 · 歌名 和 本层+子层 数量）</string>
+    <string name="set_lang">界面语言</string>
+    <string name="lang_system">跟随系统</string>
+    <string name="lang_zh">中文</string>
+    <string name="lang_en">English</string>
+    <string name="lang_hint">切换语言后本页会自动重开；悬浮条点最下面的「应用」生效。</string>
+    <string name="set_show_status">悬浮条显示时间与电量</string>
+    <string name="status_hint">左上角是时间（时:分:秒），右上角是长方形电池图标加电量百分比。</string>
     <string name="lib_play_folder">▶ 全部</string>
     <string name="cd_play_folder">把当前文件夹（含所有子文件夹）做成播放列表交给播放器，随机范围就是这个文件夹</string>
     <string name="playlist_empty">这个文件夹里没有歌曲</string>

@@ -1,12 +1,16 @@
 package com.musicbar.overlay;
 
+import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.graphics.Bitmap;
 import android.graphics.BitmapShader;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Shader;
 import android.graphics.Typeface;
+import android.os.BatteryManager;
 import android.os.Handler;
 import android.os.Looper;
 import android.text.TextUtils;
@@ -22,6 +26,8 @@ import android.widget.LinearLayout;
 import android.widget.SeekBar;
 import android.widget.TextView;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.Locale;
 
 /**
@@ -79,6 +85,97 @@ public class MusicBarView extends LinearLayout {
     private static final long LONG_PRESS_MS = 320L;
     private static final int SWIPE_MIN_DP = 56;
     private static final int SWIPE_START_DP = 16;
+    /** The dimmed colour the secondary text uses, matched by the clock and the battery. */
+    private static final int STATUS_COLOR = 0xFFB0BEC5;
+    private static final long CLOCK_STEP_MS = 1000L;
+
+    private LinearLayout statusRow;
+    private TextView timeView;
+    private TextView batteryText;
+    private BatteryView batteryView;
+    private final SimpleDateFormat clockFormat =
+            new SimpleDateFormat("HH:mm:ss", Locale.getDefault());
+    private final Handler clock = new Handler(Looper.getMainLooper());
+    private final Runnable clockTick = new Runnable() {
+        @Override
+        public void run() {
+            updateClock();
+            clock.postDelayed(this, CLOCK_STEP_MS);
+        }
+    };
+    private final BroadcastReceiver batteryReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            updateBattery(intent);
+        }
+    };
+
+    @Override
+    protected void onAttachedToWindow() {
+        super.onAttachedToWindow();
+        if (statusRow != null) {
+            statusRow.setVisibility(Prefs.showStatus(getContext()) ? VISIBLE : GONE);
+        }
+        updateClock();
+        // Start on the next whole second so the seconds do not drift.
+        clock.postDelayed(clockTick, CLOCK_STEP_MS - (System.currentTimeMillis() % CLOCK_STEP_MS));
+        Intent sticky = null;
+        try {
+            sticky = getContext().registerReceiver(batteryReceiver,
+                    new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
+        } catch (Throwable ignored) {
+            // A missing battery readout is not worth failing over.
+        }
+        if (sticky != null) {
+            updateBattery(sticky);
+        }
+    }
+
+    @Override
+    protected void onDetachedFromWindow() {
+        clock.removeCallbacks(clockTick);
+        try {
+            getContext().unregisterReceiver(batteryReceiver);
+        } catch (Throwable ignored) {
+            // It was never registered, or the context is already gone.
+        }
+        super.onDetachedFromWindow();
+    }
+
+    /** Reload the strip after the setting changed, without rebuilding the bar. */
+    public void refreshStatusVisibility() {
+        boolean on = Prefs.showStatus(getContext());
+        if (statusRow != null) {
+            statusRow.setVisibility(on ? VISIBLE : GONE);
+        }
+        if (on) {
+            updateClock();
+        }
+    }
+
+    private void updateClock() {
+        if (timeView != null) {
+            timeView.setText(clockFormat.format(new Date()));
+        }
+    }
+
+    private void updateBattery(Intent intent) {
+        if (intent == null) {
+            return;
+        }
+        int level = intent.getIntExtra(BatteryManager.EXTRA_LEVEL, -1);
+        int scale = intent.getIntExtra(BatteryManager.EXTRA_SCALE, 100);
+        int status = intent.getIntExtra(BatteryManager.EXTRA_STATUS, -1);
+        boolean charging = status == BatteryManager.BATTERY_STATUS_CHARGING
+                || status == BatteryManager.BATTERY_STATUS_FULL;
+        int percent = (level < 0 || scale <= 0) ? -1 : Math.round(level * 100f / scale);
+        if (batteryView != null) {
+            batteryView.setLevel(percent, charging);
+        }
+        if (batteryText != null) {
+            batteryText.setText(percent < 0 ? "" : percent + "%");
+        }
+    }
 
     private final Handler ui = new Handler(Looper.getMainLooper());
 
@@ -125,6 +222,35 @@ public class MusicBarView extends LinearLayout {
         fullBox = new LinearLayout(ctx);
         fullBox.setOrientation(VERTICAL);
         addView(fullBox, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
+
+        // ---- status strip: the clock on the left, the battery on the right -------------
+        statusRow = new LinearLayout(ctx);
+        statusRow.setOrientation(HORIZONTAL);
+        statusRow.setGravity(Gravity.CENTER_VERTICAL);
+        fullBox.addView(statusRow,
+                new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
+
+        timeView = new TextView(ctx);
+        timeView.setTextSize(9f);
+        timeView.setTextColor(STATUS_COLOR);
+        statusRow.addView(timeView,
+                new LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT));
+
+        // Pushes the battery to the right edge.
+        statusRow.addView(new View(ctx), new LayoutParams(0, 1, 1f));
+
+        batteryView = new BatteryView(ctx);
+        batteryView.setColor(STATUS_COLOR);
+        LayoutParams batteryParams =
+                new LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT);
+        batteryParams.rightMargin = dp(3);
+        statusRow.addView(batteryView, batteryParams);
+
+        batteryText = new TextView(ctx);
+        batteryText.setTextSize(9f);
+        batteryText.setTextColor(STATUS_COLOR);
+        statusRow.addView(batteryText,
+                new LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT));
 
         LinearLayout row = new LinearLayout(ctx);
         row.setOrientation(HORIZONTAL);
