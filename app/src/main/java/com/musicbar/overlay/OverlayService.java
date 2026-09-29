@@ -5,6 +5,7 @@ import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.app.Service;
 import android.content.Intent;
 import android.graphics.PixelFormat;
@@ -60,6 +61,26 @@ public class OverlayService extends Service implements MediaBridge.Listener {
     private String anchorFolder;
 
     private final Handler handler = new Handler(Looper.getMainLooper());
+
+    /**
+     * Follows the language setting while the service is alive. Held in a field on purpose:
+     * SharedPreferences keeps only a weak reference to its listeners, so an inline one would be
+     * collected and the service would quietly stop noticing the change.
+     */
+    private final SharedPreferences.OnSharedPreferenceChangeListener prefListener =
+            new SharedPreferences.OnSharedPreferenceChangeListener() {
+                @Override
+                public void onSharedPreferenceChanged(SharedPreferences prefs, String key) {
+                    if (Prefs.K_LANG.equals(key)) {
+                        handler.post(new Runnable() {
+                            @Override
+                            public void run() {
+                                applyLanguage();
+                            }
+                        });
+                    }
+                }
+            };
     private DisplayManager displayManager;
 
     private final DisplayManager.DisplayListener displayListener =
@@ -242,6 +263,7 @@ public class OverlayService extends Service implements MediaBridge.Listener {
         windowManager = (WindowManager) getSystemService(WINDOW_SERVICE);
         createChannel();
         startForeground(NOTIFICATION_ID, buildNotification());
+        Prefs.sp(this).registerOnSharedPreferenceChangeListener(prefListener);
         MediaBridge.get().init(this);
         MediaBridge.get().setListener(this);
         displayManager = (DisplayManager) getSystemService(DISPLAY_SERVICE);
@@ -278,6 +300,7 @@ public class OverlayService extends Service implements MediaBridge.Listener {
     @Override
     public void onDestroy() {
         running = false;
+        Prefs.sp(this).unregisterOnSharedPreferenceChangeListener(prefListener);
         playToken++;
         PlayerBrowser.get(this).release();
         hidePanel();
@@ -310,7 +333,7 @@ public class OverlayService extends Service implements MediaBridge.Listener {
 
     private void buildBar() {
         detachView();
-        bar = new MusicBarView(this, callback);
+        bar = new MusicBarView(ui(), callback);
         bar.setPinned(Prefs.pinned(this));
         bar.setCollapsed(collapsed);
         applyLayout();
@@ -324,6 +347,30 @@ public class OverlayService extends Service implements MediaBridge.Listener {
         bar = null;
         collapsed = wasCollapsed;
         buildBar();
+    }
+
+    /**
+     * Follow a language change while the service is running. A service is created once and keeps
+     * the context it was attached with, so changing the language in the settings left the bar, the
+     * panel and the notification in the old language until the service happened to be restarted.
+     */
+    private void applyLanguage() {
+        try {
+            attachBaseContext(Lang.wrap(getApplicationContext()));
+        } catch (Throwable ignored) {
+            // If it cannot be re-attached, the overlay simply keeps the language it had.
+        }
+        if (bar != null) {
+            rebuildBar();
+        }
+        hidePanel();
+        panel = null;
+        startForeground(NOTIFICATION_ID, buildNotification());
+    }
+
+    /** The overlay's text was built from a language-following context, not the raw service one. */
+    private Context ui() {
+        return Lang.wrap(this);
     }
 
     private void addView() {
@@ -404,7 +451,7 @@ public class OverlayService extends Service implements MediaBridge.Listener {
         y = clamp(y, 0, Math.max(0, screenHeight - panelHeight));
 
         if (panel == null) {
-            panel = new FolderPanelView(this, panelCallback);
+            panel = new FolderPanelView(ui(), panelCallback);
         }
         panel.setPanelHeight(panelHeight);
 
@@ -1185,7 +1232,7 @@ public class OverlayService extends Service implements MediaBridge.Listener {
         }
         NotificationChannel channel = new NotificationChannel(
                 CHANNEL_ID,
-                getString(R.string.notif_channel),
+                ui().getString(R.string.notif_channel),
                 NotificationManager.IMPORTANCE_MIN);
         channel.setShowBadge(false);
         manager.createNotificationChannel(channel);
@@ -1204,7 +1251,7 @@ public class OverlayService extends Service implements MediaBridge.Listener {
                 new Intent(this, OverlayService.class).setAction(ACTION_STOP),
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
 
-        return new Notification.Builder(this, CHANNEL_ID)
+        return new Notification.Builder(ui(), CHANNEL_ID)
                 .setSmallIcon(R.drawable.ic_note)
                 .setContentTitle(getString(R.string.notif_title))
                 .setContentText(getString(R.string.notif_text))

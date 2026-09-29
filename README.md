@@ -1,235 +1,162 @@
-# 音乐悬浮条 · FloatingMusicBar
+# 音乐悬浮条 · FloatingMusicBar 1.0
 
 [![Build APK](https://github.com/SadEggs/musicwindow/actions/workflows/build.yml/badge.svg)](https://github.com/SadEggs/musicwindow/actions/workflows/build.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Latest release](https://img.shields.io/github/v/release/SadEggs/musicwindow)](https://github.com/SadEggs/musicwindow/releases)
+[![Release](https://img.shields.io/github/v/release/SadEggs/musicwindow)](https://github.com/SadEggs/musicwindow/releases)
 
-**[中文](#中文文档) | [English](#english)**
+**[中文](#中文) | [English](#english)**
 
 ---
 
-## 中文文档
+## 中文
 
-给平板用的**横条状半透明音乐悬浮窗**：全屏游戏时浮在游戏上层，不抢焦点、不挡操作，
-显示当前歌曲 + 进度条 + 上一曲 / 播放暂停 / 下一曲，并且可以直接从它展开的面板里**点歌切歌**。
-基于通用 **Android MediaSession**，所以 Poweramp、VLC、网易云、QQ 音乐等任何规范实现的播放器都能读。
+**给平板用的横条状半透明音乐悬浮窗。** 全屏玩游戏时它浮在游戏上层，**不抢焦点、不挡住操作**，
+一根 3 cm 厚的细条上显示：专辑封面、歌名、进度、以及上一曲 / 播放暂停 / 下一曲。
+点右端的文件夹按钮会展开一个面板，直接在文件夹里点歌切歌。
 
-- **目标设备**：联想小新 Pad Pro 12.7 2025（TB375FC），Android 15。代码不绑定机型，Android 8.0+ 均可使用。
-- **来历**：这个 App 由 **DeepSeek V4 Flash** 编写（需求由人提，代码由 AI 写，编译在 GitHub Actions 上跑）。
-- **授权**：[MIT](LICENSE) —— **任何人都可以自由编译、修改、发布**（包括自己重新打包分发），
-  但**必须署名原作者 SadEggs** 并保留版权声明。详见文末「作者与署名」。
-- **零第三方依赖**：纯 framework API，不用 AndroidX、不用 Kotlin，编译快、体积小（release 仅 ~63 KB）。
+**1.0 的重点：随机播放由 App 自己完成。** 详见下面「随机 / 顺序」一节 ——
+这是本项目花最多功夫的地方，也是它和别的悬浮窗最不一样的地方。
 
-### ⚠️ 安装 / 更新必读：先"重置"，再判断是不是坏了
-
-**覆盖更新之后，如果出现"什么都没检测到"、悬浮条不显示、或歌名进度不刷新，请先做一次重置，
-不要急着认为新版本坏了。**
-
-原因是 Android 系统本身的行为：**App 更新后，系统会解绑该 App 的「通知使用权」
-（`NotificationListenerService`）**，而系统不一定马上重新绑定 —— 悬浮条于是"什么都检测不到"。
-旧版本把这种情况误判成"没有授权"，只能靠清除数据恢复。
-
-**v0.9 起已经修好**：App 会自己请系统重新绑定（`requestRebind`），并且在没有会话时持续自动重试，
-正常情况下更新完直接就能用。检测不到时，先点 App 里的「重新检测播放器」按钮即可。
-
-重置办法（从轻到重，第 1 步通常就够了）：
-
-| 顺序 | 做法 | 影响 |
-| --- | --- | --- |
-| 0 | App 里点「**重新检测播放器**」（v0.9 起） | 最轻，**不丢任何设置**，App 请系统重新绑定通知监听 |
-| 1 | 设置 → 通知使用权（通知访问）→ 把「音乐悬浮条」**关掉，再打开** | 轻，不丢任何设置 |
-| 2 | 重启平板 | 轻，不丢设置 |
-| 3 | 应用信息 → 存储 → **清除数据** | 最彻底；会重置厚度/位置/透明度等设置，之后需要**重新授权全部权限** |
-
-> 下面这些情况也用同样的办法处理：状态页一直提示「请授予通知使用权」但权限其实已经给了；
-> 悬浮条出来了但歌名/进度一直是旧的不更新。
->
-> 三种都试过还是不行，请把 App 状态页的整段内容发出来（里面有点播能力和浏览服务的诊断信息），
-> 那一段能直接定位问题。
+- **目标设备**：联想小新 Pad Pro 12.7 2025（TB375FC），Android 15，2944×1840 横屏。
+  代码不绑定机型，Android 8.0+ 都能用。
+- **播放器**：基于通用 **Android MediaSession**，Poweramp、VLC、网易云、QQ 音乐等规范实现的播放器都能读。
+- **语言**：中文 / English，设置页一键切换（悬浮窗、面板、通知一起跟着变）。
+- **零第三方依赖**：纯 framework API，不用 AndroidX、不用 Kotlin。APK 约 105 KB。
+- **授权**：[MIT](LICENSE)，可自由编译、修改、发布，**需署名原作者 SadEggs**。
 
 ### 下载
 
-**稳定版（推荐）**：https://github.com/SadEggs/musicwindow/releases/latest
+**最新正式版**：https://github.com/SadEggs/musicwindow/releases/latest
 
 | 版本 | 内容 |
 | --- | --- |
-| **v0.10**（最新稳定版） | **点歌不再关掉随机播放**（自动记住并恢复随机/循环模式）；媒体库面板恢复**从左到右、从上到下**排序 |
-| v0.9 | **修好"更新后检测不到播放器"**（自动重新绑定通知监听 + 一键重新检测）；✕ 改到文件夹图标右边；滑动阈值可在设置里调；切歌提示音可选关闭/仅蓝牙/始终 |
-| v0.8 | 滑动切歌改为「**滑出下一首预览 + 松手确认**」 |
-| v0.7 | 按编号点播（Poweramp）、暂停状态下点歌可用、主界面切换歌曲时不再闪烁消失、媒体库面板 |
+| **v1.0** | **随机/顺序播放引擎**（App 自己排歌，突破播放器「文件夹队列不递归」的限制）、**面板四个开关**（随机/顺序、含子文件夹/仅本层、单曲循环、点歌带队列）、队列位置 `X/XX` 显示、中英双语完整覆盖、面板显示子文件夹歌曲数 |
+| v0.22 ~ v0.29 | 逐版本打磨随机引擎与面板开关（详见 Releases 页） |
+| v0.10 | 点歌不再关掉随机播放；面板改回从左到右、从上到下排序 |
+| v0.9 | 修好「更新后检测不到播放器」（自动重新绑定通知监听 + 一键重新检测） |
+| v0.8 | 滑动切歌改为「滑出预览 + 松手确认」 |
+| v0.7 | 按编号点播（Poweramp）、暂停状态下点歌可用、媒体库面板 |
 | v0.5 | 钉子（固定位置）按钮、固定签名密钥 |
 | v0.1 ~ v0.4 | 悬浮条基础功能、滑动切歌、细线进度条 |
 
-**测试版**（实验功能，发布时标记 Pre-release，不会顶掉稳定版）：
-
-| 版本 | 内容 |
-| --- | --- |
-| v0.6-beta1 | 面板长度与主界面一致、多路点歌、点播能力诊断 |
-| v0.5-beta1 | 媒体库面板首次出现 |
-
-平板上直接用浏览器打开上面的链接就能下载 APK。
-
 ### 安装与升级
 
-1. 把 APK 传到平板（数据线 / 网盘 / 微信文件传输助手都行）。
-2. 用文件管理器点开 APK，按提示允许「安装未知应用」。
+1. 平板上用浏览器打开上面的链接，下载 `app-release.apk`（**不是** `app-debug.apk`）。
+2. 用文件管理器点开它，按提示允许「安装未知应用」。
 3. 或者用数据线：`adb install -r app-release.apk`
 
-**关于签名**：早期版本（v0.4 及更早）每次编译都用当场新生成的密钥签名，所以装新版本会报
-「签名不一致」必须卸载。现在已改为**固定密钥**（`app/keystore.b64`，工作流第一次运行时生成并提交），
-**v0.5 及以后的所有版本签名完全一致**，可以直接覆盖安装，不用再卸载。
-
-> 只有从 **v0.4 或更早**升级时，才需要最后卸载重装一次。之后永久不用。
->
-> 密钥口令写在 `app/build.gradle` 里，而仓库是公开的，所以这个密钥等于公开的。对自用 sideload
-> 足够（别人拿到它也只能签出一个"同名"APK，无法往本仓库发版）。若在意，可改用 GitHub Actions
-> Secret 保存密钥（需要给令牌加 Secrets 权限）。
+**签名**：v0.5 起所有版本使用**固定密钥**签名，可以互相覆盖安装。只有从 v0.4 或更早升级，
+才需要最后卸载重装一次。若下载后提示「应用未安装 / 软件包似乎无效」：先确认文件大小与 Releases
+页显示的一致（下载中断是最常见的原因），换系统浏览器重下，或先卸载旧版再装。
 
 ### 首次使用：四步授权
 
-打开 App，顶部就是授权清单，**点文字那一行**就会跳到对应系统设置：
+打开 App，顶部就是授权清单，**点文字那一行**会跳到对应的系统设置。
 
 | 权限 | 必须？ | 说明 |
 | --- | --- | --- |
-| 悬浮窗权限 | **必须** | 「显示在其他应用上层」，否则条根本画不出来 |
-| 通知使用权 | **必须** | 用来读取播放器的媒体会话（歌名 / 进度 / 控制）。本 App **不读取通知内容** |
-| 忽略电池优化 | 建议 | 不加白名单，系统可能在游戏时把悬浮条回收 |
-| 音乐和音频 | 点歌需要 | 读取音乐文件夹，用于展开媒体库面板 |
+| 悬浮窗权限 | **必须** | 「显示在其他应用上层」，否则条画不出来 |
+| 通知使用权 | **必须** | 读取播放器的媒体会话（歌名 / 进度 / 控制）。本 App **不读取通知内容** |
+| 忽略电池优化 | 建议 | 不加白名单，系统可能在游戏时回收悬浮窗 |
+| 音乐和音频 | 面板需要 | 扫描音乐文件夹，供面板浏览和点歌 |
 | 通知权限 | 可选 | 只影响那条常驻通知是否可见，服务本身不受影响 |
 
-授权后回到 App，点 **启动悬浮条** 即可。
+> 1.0 的随机播放由 App 自己完成，**不再写任何 m3u 播放列表文件**，所以不再需要「所有文件访问」。
+> 设置页里遗留的旧入口可以不给权限。
 
-> **第一次启动看不到条？** 默认开了「仅在播放时显示」—— 没有正在播放/暂停的音乐时，
-> 条会自动隐藏。先用播放器放一首歌它就会出来；想随时验证效果，把设置里「仅在播放时显示」关掉。
+授权后回到 App，点 **启动悬浮条**。**第一次看不到条？** 默认开了「仅在播放时显示」——
+没有正在播放/暂停的音乐时它会隐藏，先放一首歌就会出现。
 
 ### 日常操作
 
-- **向左滑动条身**：下一首 ／ **向右滑动**：上一曲 —— 滑动时会把**下一首的曲名滑进来预览**
-  （副标题显示「继续滑动 / 松手切换」），**滑过设定阈值（默认 40%，设置里可调）松手才真正切歌**；
-  松手太早会自动弹回、歌曲不变。这样在不固定（可拖动）状态下也能一眼分清"我在切歌"还是"我在移条"。
-- **切歌提示音**：默认**只在蓝牙音频时**响一声（外放静音），设置里可选「关闭 / 仅蓝牙 / 始终」。
-  悬浮条和面板上的按钮都关掉了系统"触摸提示音"，所以外放时**任何操作都不会有提示音**。
-  （若蓝牙时还听到不同的"嘟嘟"声，那是耳机自己在响应 AVRCP 切歌，App 无法控制。）
-- **单击条身文字区**：播放 / 暂停（文字区有**淡边框**标出可滑动区域，滑动时边框会点亮）。
-  注意：**只有框内滑动才会切歌**（0.14 起），框外区域横滑不会再误切歌；条处于**变淡的静止状态**时，
-  **第一下点击只是把条点亮**（不会暂停音乐）—— 想点播放/暂停请点第二下，或点中间的播放按钮。
-- **按钮**（上一曲 / 播放暂停 / 下一曲 / 钉子 / 文件夹）：**占满整条高度**、宽 48dp（播放键 54dp），
-  轻按下会有**轻微触感反馈**，所以即使条很细也点得准
-- **长按条身后拖动**：挪到任意位置（松手后自动记住）
-- **点钉子按钮**：固定 / 取消固定。钉住后条**完全不能移动**（长按拖动也失效），图标变琥珀色，避免游戏中误碰挪走。
-- **点右端文件夹图标**：展开 / 收起媒体库面板。**面板展开时它右边会多出一个 ✕ 按钮**，
-  点它就关闭面板（面板头部也有一个 ✕）。（**长按**文件夹图标仍是折叠成小把手）
-- **点小把手**：展开回横条
-- **拖动中间的细线**：跳转进度（细线上的圆点就是当前位置）
-- 进度显示是「一根 2px 细线 + 一个圆点」：`12:34 . . . . o . . . . 45:07`，没有醒目的色块。
+- **点条身文字区**：播放 / 暂停。条变淡时，第一下点击只是把条点亮（不会暂停音乐）。
+- **在文字框内左右滑动**：下一首 / 上一曲 —— 滑动时会把**下一首的曲名滑进来预览**，
+  **滑过阈值（默认 40%，可调）松手才真正切歌**，松手太早会自动弹回。
+- **按钮**（上一曲 / 播放暂停 / 下一曲 / 钉子 / 文件夹）占满整条高度，宽 48dp（播放键 54dp），
+  按下有轻微触感反馈，条再细也点得准。
+- **长按条身拖动**：挪到任意位置（松手记住）；点**钉子**固定后完全不能移动（图标变琥珀色）。
+- **点文件夹图标**：展开 / 收起媒体库面板（面板右边会多一个 ✕，面板头部也有）。
+- **拖动中间的细线**：跳转进度。进度画成「2px 细线 + 一个圆点」，不挡游戏画面。
+- **切歌提示音**：默认**只在蓝牙音频时**响，外放静音（可选 关闭 / 仅蓝牙 / 始终）。
 
-### 点歌（在面板里点一首歌直接切过去）
+### 随机 / 顺序：App 自己排歌（1.0 的核心）
 
-这是本项目最花功夫的部分，因为播放器对外部点歌的支持各不相同。点一首歌时按下面的顺序尝试，
-每一步都会连续确认歌曲是否真的换了，没换才试下一种：
+**为什么需要它。** 播放器自己的队列覆盖多大范围，是播放器说了算。实测 **Poweramp 从文件夹播放时
+只播本层，子文件夹的歌不会进队列**（在它自己的界面里也一样），而且它**不对外公开自己的播放队列**。
+所以没有哪个 MediaSession 接口能把"一整棵树 + 随机"交给播放器 ——
+早期版本试过把树写成 `.m3u` 交给 Poweramp，实测**行不通**（它会把 m3u 当成一首歌，报「播放失败」跳过；
+也不会把外部 m3u 收进自己的播放列表）。
 
-1. **按编号点播**（`playFromMediaId`）—— 最准。先连上播放器自己的**媒体浏览服务**
-   （Android Auto 用的那套接口，Poweramp 的是 `com.maxmpz.audioplayer/...BrowserService`），
-   在它的曲库里按标题 + 歌手匹配到这首歌，拿到播放器**自己给这首歌分配的编号**再点播。
-   查找是严格有界的：一层层订阅、最多 300 个目录 / 4000 首、4 秒预算、命中精确匹配立刻停止 ——
-   曲库再大也不会卡住悬浮条，而且一定会返回结果。
-2. **按名称点播**（`playFromSearch`）—— Android Auto / 语音助手用的标准请求。
-3. **按文件点播**（`playFromUri`）—— 直接给出该文件的 MediaStore 地址。
+**1.0 的做法：App 自己当随机引擎。** 面板点歌时 App 自己排出队列（含子文件夹的整棵树），
+一首一首交给播放器播，并盯着进度在曲末自动接下一首。代价是**每首之间约 0.3~1 秒的空隙**
+（播放器无法被要求"无缝接下一首"），换来的是**完整的随机范围和队列位置显示**。
 
-**随机播放模式会被保住**（v0.10 起）：播放器接到"播这一首"的请求时通常会**重建播放队列**，
-而随机播放是跟着队列走的 —— 所以从面板点歌会顺手把随机播放关掉。现在点歌前会先记住
-**随机 + 循环模式**，歌曲真正切过去之后再放回去；模式没变就完全不动它。
-设置里的「**点歌时保持随机播放模式**」（默认开）可以关掉这个行为。
+**面板头部的四个开关**（点一下切换，都会记住）：
 
-> 关于实现（**0.14 起改为"不动它"**）：Poweramp 的随机**不是开关，而是循环切换**
-> （顺序 → 随机歌曲 → 随机分类 → …）。实测发现：只要"按一下"它的随机按钮，档位就会换成下一档，
-> 所以任何"帮你按回去"的做法都会**改掉你在 Poweramp 里设的档位**。
->
-> 因此 0.14 的默认是「**完全不动**」—— App 不读也不写 Poweramp 的随机设置，保持你设置的样子。
-> 这条路上确实没有可用的读取接口（状态页 `随机接口=none`），Poweramp 只把随机发布成一个
-> **循环切换的自定义动作**（`自定义动作=SHUFFLE|REPEAT|…`），而循环动作无法"恢复到某一档"，
-> 只能一档档往下走。
->
-> 设置里仍然保留了其它几种（仅在它被改动时按回 / 每次都按一次 / 用系统接口设定 / 按通知栏按钮），
-> 供不同播放器使用；但**对 Poweramp 推荐保持「完全不动」**。
-> 状态页会显示 `随机接口=`、`随机动作=`、`通知按钮=`、`自定义动作=`，便于判断别的播放器是否有更好的接口。
->
-> 另外「**点播方式**」默认是`按文件`：直接播文件，**不需要遍历播放器的目录树**（这是之前点歌要等几秒的原因）。
+| 开关 | 打开 | 关闭 |
+| --- | --- | --- |
+| **🔀 随机 / ➡ 顺序** | 随机播放（App 自己洗牌） | 按文件夹原本顺序依次播放，走完从头再来 |
+| **含子文件夹 / 仅本层** | 范围 = 当前文件夹**及其下所有子文件夹** | 只在**当前文件夹自己的歌**里 |
+| **🔂 单曲循环** | 点某一首歌就**一直重复这一首**，直到切换别的模式 | 正常播放 |
+| **点歌带队列** | 点歌时这首歌作为**整个队列的第一首**（效果同「▶ 全部」，只是从这首开始） | 只播这一首 |
 
-**「▶ 全部」：让随机覆盖整棵文件夹树**。播放器自己建立的队列覆盖多大范围，是播放器说了算 ——
-实测 Poweramp 从文件夹播放时**只播本层**，子文件夹的歌不会进队列（在它自己的界面里也一样），
-所以本 App 无法通过"点歌"把范围变大。于是面板头部加了「▶ 全部」：App 把**当前文件夹（含所有
-子文件夹）**的歌写成一个 `.m3u` 播放列表，放在**歌曲所在的那个文件夹里**，再让播放器打开它 ——
-播放器于是像打开普通播放列表一样建立队列，**随机、无缝切换、EQ/音效/DAC 输出全部由播放器自己完成**，
-范围就是那个文件夹的整棵树。
+- **「▶ 全部」**（面板左上角）：按上面三个范围相关的开关播放**整个文件夹范围**。
+- **点某一首歌**：● 单曲循环开着 → 只重复这一首；● 否则「点歌带队列」开着 → 这首歌是队列第一首
+  （随机模式后面接随机顺序；顺序模式从这首歌往后排，到末尾回到前面）；● 都关 → 只播这一首。
+- 悬浮窗上方会显示 **`X/XX`**，表示当前是队列里的第几首、一共几首。
 
-写这个文件需要「**所有文件访问**」权限（Android 10 起系统不允许第三方 App 写系统「播放列表」表，
-只能写文件）；设置页有对应的一项。App 只写**一个固定文件**
-`Music/MusicBar/MusicBar 随机 - 播放列表.m3u`，每次覆盖它，**不会往音乐文件夹里写任何东西**，
-也不会越攒越多；设置页另有「**清理生成的播放列表**」按钮，可一键删掉 App 写过的播放列表文件
-（含 0.16 遗留在各个音乐文件夹里的那些）。
+**点歌技术阶梯**：面板点歌时依次尝试 ① 播放器自己的媒体浏览服务按编号点播（Poweramp 支持）
+② `playFromSearch` ③ 直接播文件。每一步都会确认歌曲是否真的换了，没换才试下一种；
+**全程不会把播放器切到前台，游戏不会被切出去**。暂停状态下点歌会自动补一个播放指令。
 
-**暂停状态下点歌也已修复**：有些播放器（例如 Poweramp）在暂停时收到点播请求，
-会把新歌装进队列**但不开始播放**，旧版本因此误判失败并去试下一种，结果状态被搅乱。
-现在检测到"歌换了但还在暂停"会**自动补一个播放指令**，所以暂停时点歌也能直接唱起来。
-
-三种都试完还没换歌，才会提示「播放器没有响应点播请求」。全程**不会**把播放器切到前台，游戏不会被切出去。
-
-App 状态页底部有诊断信息，出问题时把这段发给我即可：
-
-```
-点播支持: 按名称=是 按文件=是 按编号=是
-播放器浏览服务: 已按编号精确匹配到曲目 com.maxmpz.audioplayer
-媒体浏览服务
-  com.android.bluetooth/com.android.bluetooth.avrcpcontroller.BluetoothMediaBrowserService
-  com.maxmpz.audioplayer/com.maxmpz.audioplayer.data.external.BrowserService
-  org.videolan.vlc/org.videolan.vlc.PlaybackService
-```
-
-- **点播支持**读的是播放器自己声明的能力（MediaSession transport actions）。三个都是「否」，
-  说明这个播放器根本不打算接受外部点歌，那就只能用上一曲/下一曲。
-- **播放器浏览服务**显示本次查找的结果：精确匹配 / 近似匹配 / 曲库里没有 / 未连接。
-
-### 默认参数（都能在设置页改）
+### 默认参数（设置页都能改）
 
 | 项目 | 默认值 | 说明 |
 | --- | --- | --- |
-| 形状 | 横条，厚 **3 cm** | 用屏幕物理 DPI 换算（273 ppi → 3cm ≈ 322 px，约屏高 17.5%） |
-| 长度 | 屏幕宽度的 **60%** | 可用 20%~100% 灵活调 |
+| 形状 | 横条，厚 **3 cm** | 用屏幕物理 DPI 换算（273 ppi → 约 322 px，屏高 ~17.5%） |
+| 长度 | 屏幕宽度的 **60%** | 20%~100% 可调 |
 | 位置 | 底部居中，距边 8 dp | 可拖到任意位置，也可改回顶部停靠 |
-| 静止不透明度 | **35%** | 4 秒不碰它自动淡到 35%，一碰回到 90% |
-| 显示时机 | 仅在有播放/暂停会话时出现 | 彻底停止播放后自动隐藏 |
-| 折叠把手 | 1.6 cm 圆把手 | 点条右端箭头折叠，点把手展开 |
+| 静止不透明度 | **35%** | 4 秒不碰自动淡到 35%，一碰回到 90% |
+| 显示时机 | 仅在有播放/暂停会话时 | 彻底停止播放后自动隐藏 |
 | 专辑封面 | 默认关闭 | 开启后左侧显示 46dp 缩略图 |
-| 媒体库面板 | 3 列磁贴，占屏高约 1/3 | **从左到右、从上到下**排布，长度与主界面一致 |
+| 媒体库面板 | 3 列磁贴 | 子文件夹行显示「名字 · N 首」（N 含子文件夹） |
 
-### 已知限制（重要）
+### 已知限制
 
-1. **条的矩形区域会吃掉触摸**。悬浮窗是一整个窗口，条覆盖的地方游戏点不到。缓解：折叠成小把手、
-   停靠在游戏 UI 空档处、调低不透明度。这是 Android 悬浮窗的固有限制，不是 bug。
-2. **权限缺失时不显示**：没给悬浮窗权限就画不出来；没给通知使用权只能显示提示文字。
-3. **歌名跑马灯**：Android 对非焦点窗口的跑马灯支持不稳定，某些 ROM 上长歌名会直接截断不滚动。
+1. **App 自己排歌的空隙**：每首之间约 0.3~1 秒（详见上文）。这是"突破播放器队列限制"的代价。
+2. **条的矩形范围会吃掉触摸**：悬浮窗是一整个窗口，条盖住的地方游戏点不到。
+   缓解：折叠成小把手、停靠在游戏 UI 空档、调低不透明度。这是 Android 悬浮窗的固有限制。
+3. **不读播放器的随机开关**：Poweramp 的随机是**循环切换**（顺序→随机歌曲→随机分类→…），
+   没有可用的读取接口（状态页 `随机接口=none`），任何"帮你按回去"的做法都会改掉你设的档位，
+   所以 App **完全不碰它** —— 随机播放由 App 自己实现，与你播放器里的设置无关。
 4. **部分游戏会主动隐藏悬浮窗**（Android 12+ 的 `setHideOverlayWindows`，或带反外挂的游戏），
    这类游戏里任何悬浮窗都出不来，无解。
-5. **物理尺寸依赖系统上报的 DPI**。若 3cm 量出来有偏差，把「短边厚度（厘米）」按比例微调。
-6. **媒体库面板读的是系统的 `MediaStore` 索引**，不是播放器自己的曲库（点歌时才去查播放器曲库）。
-   某些文件夹要等系统重新扫描后才会出现。
+5. **长歌名跑马灯**在非焦点窗口上不可靠，某些 ROM 会直接截断。
+6. **面板读的是系统 `MediaStore` 索引**，不是播放器自己的曲库（点歌时才查播放器曲库）。
+   新文件夹可能要等系统重新扫描。
+7. **物理尺寸依赖系统上报的 DPI**，若 3 cm 量出来有偏差，按比例微调「短边厚度」。
+
+### 更新后「检测不到播放器」？
+
+Android 在 **App 更新后会解绑它的通知使用权**，悬浮条于是什么都读不到。App 会自己请系统重新绑定
+并持续重试；若仍不行，按从轻到重处理：**① 点 App 里的「重新检测播放器」→ ② 设置里把通知使用权
+关掉再打开 → ③ 重启平板 → ④ 清除数据**（会重置设置，需重新授权）。前两步不丢任何设置。
 
 ### 自己编译（无需本地环境）
 
-代码在 GitHub Actions 上云端编译，本机不需要 JDK / Android SDK。工作流：`.github/workflows/build.yml`
-（自装 cmdline-tools + `platforms;android-35` + `build-tools;35.0.0`，Gradle 8.9 / AGP 8.7.3 / Java 17）。
+代码在 GitHub Actions 上云端编译，本机不需要 JDK / Android SDK。
+工作流：`.github/workflows/build.yml`（cmdline-tools + `platforms;android-35` + `build-tools;35.0.0`，
+Gradle 8.9 / AGP 8.7.3 / Java 17）。
 
 ```powershell
 git add -A
 git commit -m "你的改动"
 git push origin main          # 触发编译
-git tag -a v0.8 -m "..."      # 打标签则会额外生成带 APK 附件的 Release
-git push origin v0.8
+git tag -a v1.0 -m "..."      # 打标签会额外生成带 APK 的 Release
+git push origin v1.0
 ```
 
-- `main` 分支 = 稳定版；`beta` 分支 = 实验版（发布时自动标记 Pre-release）。
-- 版本号规则：稳定版 `v0.7`，测试版 `v0.7-beta1`，测试版的 `versionCode` 低于同名稳定版，便于覆盖升级。
+推 `main` = 稳定版线；推 `beta` = 实验版线。标签里的版本号决定 Release 名字。
 
 ### 目录结构
 
@@ -237,52 +164,32 @@ git push origin v0.8
 FloatingMusicBar/
 ├─ LICENSE                        MIT
 ├─ .github/workflows/build.yml    云端编译（Actions）
-├─ settings.gradle / build.gradle / gradle.properties
-└─ app/
-   ├─ build.gradle                无第三方依赖，纯 framework API
-   └─ src/main/
-      ├─ AndroidManifest.xml
-      ├─ java/com/musicbar/overlay/
-      │  ├─ MainActivity.java         授权向导 + 设置页 + 诊断
-      │  ├─ OverlayService.java       前台服务：悬浮窗、折叠、媒体库面板、点歌阶梯
-      │  ├─ MusicBarView.java         条的 UI（歌名/进度条/五个按键/封面/把手）
-      │  ├─ FolderPanelView.java      媒体库面板（三列磁贴、逐级进入）
-      │  ├─ PlayerBrowser.java        播放器媒体浏览服务客户端（按编号点播）
-      │  ├─ MediaLibrary.java         MediaStore 音乐库扫描与目录树
-      │  ├─ MediaBridge.java          媒体会话读取、进度插值、控制、封面解码
-      │  ├─ MediaListenerService.java 通知监听（换取 getActiveSessions 权限）
-      │  ├─ BootReceiver.java         开机自启
-      │  └─ Prefs.java                所有配置项 + cm→px 物理换算
-      └─ res/                         图标、圆角背景、进度条、中文文案
+└─ app/src/main/
+   ├─ AndroidManifest.xml
+   ├─ java/com/musicbar/overlay/
+   │  ├─ MainActivity.java         授权向导 + 设置页
+   │  ├─ OverlayService.java       前台服务：悬浮窗、面板、随机引擎、点歌阶梯
+   │  ├─ MusicBarView.java         条的 UI（封面/歌名/细线进度/五个按键/把手）
+   │  ├─ FolderPanelView.java      面板（三列磁贴、四个开关、点歌）
+   │  ├─ PlayerBrowser.java        播放器媒体浏览服务客户端（按编号点播）
+   │  ├─ MediaLibrary.java         MediaStore 音乐库扫描与目录树
+   │  ├─ MediaBridge.java          媒体会话读取、进度插值、控制、封面解码
+   │  ├─ MediaListenerService.java 通知监听（换取 getActiveSessions 权限）
+   │  ├─ Lang.java                 中英切换
+   │  ├─ Prefs.java                所有配置项 + cm→px 物理换算
+   │  └─ BootReceiver.java         开机自启
+   └─ res/                         图标、圆角背景、进度条、中英文案
 ```
-
-### 踩过的坑（开发笔记）
-
-1. **不要用 `android-actions/setup-android@v3`**：它会去装早已下架的 `tools` 包，在 ubuntu-24.04 上
-   直接报 `Failed to find package 'tools'` 把流水线搞挂。现在自装 cmdline-tools。
-2. **推 `.github/workflows/` 下的文件，token 必须有 `Workflows` 权限**，否则报
-   `refusing to allow a Personal Access Token to create or update workflow`。
-3. **本机 git 的 Schannel 不可用时**（`schannel: AcquireCredentialsHandle failed`），推送加
-   `-c http.sslBackend=openssl`。
-4. **自定义 View 里不能写裸的 `MATCH_PARENT` / `WRAP_CONTENT`**，必须写
-   `LayoutParams.MATCH_PARENT`（嵌套类成员不会继承进子类作用域）。
-5. **设置页输入框不能只在失焦时保存**：触摸模式下点 Button / SeekBar / 空白处都不会让 EditText
-   失焦，`onFocusChange(false)` 永不触发 —— 曾导致「改了没用」。现在改为每次输入即时保存 + 防抖。
-6. **数字输入要容错**：中文输入法全角数字和逗号（`2，5`）会让 `Float.parseFloat` 抛异常。
-7. **`MediaBrowserService` 有两个同名类**：framework 的是 `android.service.media.MediaBrowserService`，
-   AndroidX 的是 `androidx.media.app.MediaBrowserService`；而清单 `<queries>` 里要写的是
-   **接口动作名** `android.media.browse.MediaBrowserService`。写错任何一个都编译不过。
 
 ### 作者与署名（请保留）
 
-- **原作者**：**SadEggs** — https://github.com/SadEggs
-- **代码作者**：**DeepSeek V4 Flash**（人提需求 → AI 写代码 → GitHub Actions 云端编译出 APK）
+- **原作者 / 需求提出**：**SadEggs** — https://github.com/SadEggs
+- **代码编写**：**DeepSeek V4 Flash**（人提需求 → AI 写代码 → GitHub Actions 云端编译出 APK）
 - **授权**：[MIT](LICENSE)
 
-**你可以**：自由编译、修改、二次开发、重新打包，并把自编译的 APK 发布到任何地方（自用、送人、上架都行）。
+**你可以**自由编译、修改、二次开发、重新打包，并把自编译的 APK 发布到任何地方（自用、送人、上架都行）。
 
-**唯一要求**：**必须署名原作者 SadEggs**，并保留本仓库的版权声明与 LICENSE。也就是说，转载、
-发布或再分发时请注明：
+**唯一要求**：**必须署名原作者 SadEggs**，并保留本仓库的版权声明与 LICENSE：
 
 > 原始项目：FloatingMusicBar by SadEggs — https://github.com/SadEggs/musicwindow
 
@@ -290,220 +197,172 @@ FloatingMusicBar/
 
 ## English
 
-A **thin, translucent music overlay bar for Android tablets**. It floats above a full-screen game
-without stealing focus or blocking input, showing the current song, a hairline progress bar and
-previous / play-pause / next. A panel that unfolds from the bar browses your music folders and
-starts any song you tap. Built on the standard **Android MediaSession** APIs, so any player that
-implements them works — Poweramp, VLC, NetEase Cloud Music, QQ Music and so on.
+**A thin, translucent music overlay bar for Android tablets.** It floats above a full-screen game
+**without stealing focus or blocking input**: one 3 cm-tall strip showing cover art, title,
+progress and previous / play-pause / next. The folder button at its right end unfolds a browser
+panel that plays any song you tap.
 
-- **Target device**: Lenovo Xiaoxin Pad Pro 12.7 2025 (TB375FC), Android 15. Nothing is
-  device-specific; Android 8.0+ works.
-- **How it was made**: written by **DeepSeek V4 Flash** — a human set the requirements, the model
-  wrote the code, and GitHub Actions builds the APK in the cloud.
-- **License**: [MIT](LICENSE) — **anyone may freely compile, modify, repackage and publish it**
-  (including redistributing your own build), as long as the original author **SadEggs** is credited
-  and the copyright notice is kept. See "Credits and attribution" below.
-- **Zero third-party dependencies**: plain framework APIs, no AndroidX, no Kotlin. Small and fast
-  (the release APK is about 63 KB).
+**The 1.0 headline: the app is its own shuffle engine.** See "Shuffle and order" below — it is the
+part of this project that took the most work, and the thing that sets it apart.
 
-### ⚠️ Read this before installing or updating: reset first, then judge
-
-**If, after updating over an existing install, the app "detects nothing", the bar does not appear,
-or the title and progress stop refreshing — do a reset before assuming the new version is broken.**
-
-The cause is Android itself, not this app: **after an app is updated, the system unbinds that app's
-notification listener access (`NotificationListenerService`)**, so it stops handing the player's
-media session to the app. A fresh install is normally unaffected; this shows up when installing
-over an older version.
-
-Reset methods, from lightest to heaviest — step 0 is usually enough:
-
-| Order | What to do | Impact |
-| --- | --- | --- |
-| 0 | Tap **"Re-check player"** in the app (v0.9 and later) | Lightest, **keeps all your settings**; the app asks the system to bind the listener again |
-| 1 | Settings → Notification access → turn **off**, then **on** again for FloatingMusicBar | Light, keeps every setting |
-| 2 | Reboot the tablet | Light, keeps settings |
-| 3 | App info → Storage → **Clear data** | Heaviest; resets thickness/position/opacity and you must **grant every permission again** |
-
-> v0.9 fixes this properly: the app asks the system to rebind the listener by itself and keeps
-> retrying while it finds no session, so an update normally just works.
-
-> The same reset also fixes: the status page keeps asking for notification access even though it is
-> granted, and a bar that appears but never updates its title or progress.
->
-> If none of the three help, send the whole status page text — it contains the point-song capability
-> and browser-service diagnostics, which pinpoint the problem.
+- **Target device**: Lenovo Xiaoxin Pad Pro 12.7 2025 (TB375FC), Android 15, 2944×1840 landscape.
+  Nothing is device-specific; Android 8.0+ works.
+- **Players**: built on the standard **Android MediaSession** APIs, so Poweramp, VLC, NetEase Cloud
+  Music, QQ Music and any other conforming player work.
+- **Languages**: Chinese and English, switched with one row in the settings — the bar, the panel and
+  the notification all follow.
+- **Zero third-party dependencies**: plain framework APIs, no AndroidX, no Kotlin. About 105 KB.
+- **License**: [MIT](LICENSE) — free to compile, modify and publish, **crediting SadEggs**.
 
 ### Download
 
-**Stable (recommended)**: https://github.com/SadEggs/musicwindow/releases/latest
+**Latest stable**: https://github.com/SadEggs/musicwindow/releases/latest
 
 | Version | What is in it |
 | --- | --- |
-| **v0.10** (latest stable) | **Picking a song no longer turns shuffle off** (the shuffle / repeat mode is remembered and put back), and the library panel is ordered **left to right, then top to bottom** again |
-| v0.9 | **Fixes "detects nothing after an update"** (the app asks the system to rebind the listener by itself, plus a one-tap re-check button); the **✕** moved next to the folder button; the swipe threshold became a setting; the track-change tone can be off / Bluetooth only / always |
-| v0.8 | Swiping previews the incoming song and only switches when you let go past the threshold |
-| v0.7 | Play by library id (Poweramp), point-song now works while paused, no more bar flicker when the track changes, media library panel |
+| **v1.0** | **A shuffle/order engine of its own** (the app builds the queue, working around players whose folder queue is not recursive), **four panel switches** (shuffle/order, with/without sub-folders, repeat one, tap-carries-the-queue), the `X/XX` queue position, complete Chinese/English coverage, sub-folder song counts in the panel |
+| v0.22 – v0.29 | Iterations on the engine and the panel switches — see the Releases page |
+| v0.10 | Picking a song no longer turns shuffle off; the panel orders left to right, top to bottom again |
+| v0.9 | Fixes "detects nothing after an update" (self-rebinding listener plus a re-check button) |
+| v0.8 | Swiping previews the incoming song and only switches on release past the threshold |
+| v0.7 | Play by library id (Poweramp), point-song while paused, media library panel |
 | v0.5 | Pin (lock position) button, fixed signing key |
 | v0.1 – v0.4 | The core bar, swipe to change track, hairline progress bar |
 
-**Beta builds** are published as pre-releases and never take over the "Latest" badge:
-
-| Version | What is in it |
-| --- | --- |
-| v0.6-beta1 | Panel length matched to the bar, multi-route point-song, capability diagnostics |
-| v0.5-beta1 | First version of the media library panel |
-
 ### Install and upgrade
 
-1. Copy the APK to the tablet (USB, cloud drive, or a chat app to yourself).
+1. Open the link above on the tablet and download `app-release.apk` (**not** `app-debug.apk`).
 2. Open it with a file manager and allow "install unknown apps" when asked.
 3. Or use adb: `adb install -r app-release.apk`
 
-**About signing**: versions up to v0.4 were signed with a throwaway debug key generated on a fresh
-CI runner each time, so upgrading required an uninstall ("signature mismatch"). All versions are now
-signed with a **fixed key** (`app/keystore.b64`, generated and committed by the workflow on its first
-run), so **v0.5 and later all share the same signature** and install straight over each other.
-
-> Only an upgrade from **v0.4 or earlier** needs that one-time uninstall.
->
-> The key password lives in `app/build.gradle`, and the repository is public, so the key is
-> effectively public. That is fine for personal sideloading (someone else could only sign a
-> same-named APK, not publish to this repository). If you care, move it into a GitHub Actions secret.
+**Signing**: every build from v0.5 on is signed with the same **fixed key**, so versions install
+straight over each other; only an upgrade from v0.4 or earlier needs a one-time uninstall. If an
+install reports "app not installed / package appears to be invalid", check that the file size
+matches the Releases page first (an interrupted download is the usual cause), re-download with the
+system browser, or uninstall the old version first.
 
 ### First run: grant the permissions
 
-The permission checklist is at the top of the app; **tap the text row** to jump to the matching
-system screen.
+The checklist is at the top of the app; **tap the text row** to jump to the matching system screen.
 
 | Permission | Required? | Why |
 | --- | --- | --- |
 | Display over other apps | **Yes** | Without it the bar cannot be drawn at all |
 | Notification access | **Yes** | Reads the player's media session (title / progress / controls). The app does **not** read notification content |
 | Ignore battery optimisation | Recommended | Otherwise the system may kill the overlay during a game |
-| Music and audio | For point-song | Reads music folders for the library panel |
+| Music and audio | For the panel | Scans music folders so the panel can browse and play them |
 | Notifications | Optional | Only affects the ongoing notification's visibility |
 
-Then tap **Start** in the app.
+> 1.0 shuffles by itself and **writes no m3u playlist files at all**, so it no longer needs
+> "all files access"; the leftover row in the settings can be denied.
 
-> **No bar on first start?** "Show only while playing" is on by default, and with nothing playing
-> the bar stays hidden. Play something and it appears, or turn that option off to see it right away.
+Then tap **Start**. **No bar on first start?** "Show only while playing" is on by default, so with
+nothing playing the bar stays hidden — play something and it appears.
 
 ### Everyday use
 
-- **Swipe left / right** on the bar: next / previous track. While you swipe, the incoming song's
-  title slides in with a "keep sliding / let go to switch" hint, and the switch only happens if you
-  release past the threshold (40% by default, adjustable in the settings) - release earlier and
-  everything springs back with the song unchanged. That makes it obvious, even with the bar unpinned
-  and draggable, whether a gesture is changing the song or moving the bar.
-- **Track-change tone**: by default it only beeps **when audio is on Bluetooth**, so the tablet
-  speaker stays silent; the setting offers off / Bluetooth only / always. Sound effects are switched
-  off on the bar and the panel, so no system touch sound is heard either. A headset that beeps on its
-  own when the track changes does so from its own firmware and cannot be controlled by any app.
-- **Tap the title area**: play / pause. The title area carries a faint **outline** marking the swipe
-  zone, which lights up while a swipe is in progress. Only a swipe that starts **inside that outline**
-  switches songs (from 0.14), so dragging along the rest of the bar no longer changes track. When the
-  bar is dimmed, the first tap only wakes it rather than pausing the music.
-- **Buttons** (previous / play-pause / next / pin / folder): they fill the whole height of the bar and
-  are 48dp wide (54dp for play) with a light haptic tick, so they stay easy to hit on a thin bar.
-- **Long-press, then drag**: move it anywhere; the position is remembered.
-- **Pin button**: locks the position so it cannot be moved by accident (the icon turns amber).
-- **Folder button**: unfold / fold the library panel. While the panel is open a **✕** appears just to
-  its right, to close the panel again. **Long-press** the folder button to collapse the bar instead.
-- **Drag the hairline**: seek; the dot on the line is the current position.
-- Progress is drawn as a 2px hairline with a dot: `12:34 . . . . o . . . . 45:07`.
+- **Tap the title area**: play / pause. When the bar is dimmed the first tap only wakes it.
+- **Swipe left / right inside the title outline**: next / previous. The incoming song's title slides
+  in as a preview, and the switch happens only if you release past the threshold (40% by default).
+- **Buttons** (previous / play-pause / next / pin / folder) fill the bar's height and are 48dp wide
+  (54dp for play), with a light haptic tick, so they stay easy to hit on a thin bar.
+- **Long-press, then drag**: move it anywhere, remembered. The **pin** button locks it in place.
+- **Folder button**: unfold / fold the library panel (a ✕ appears beside it while open).
+- **Drag the hairline**: seek; the dot is the current position.
+- **Track-change tone**: Bluetooth only by default, so the tablet speaker stays silent.
 
-### Point-song (tap a song in the panel to play it)
+### Shuffle and order: the app builds the queue (the heart of 1.0)
 
-Players differ in what they accept, so a tap tries the following in order, checking after each
-attempt whether the track really changed:
+**Why it is needed.** How far a player's queue reaches is the player's decision, and Poweramp plays
+only a folder's own songs — its sub-folders stay separate even in Poweramp's own UI — and it **does
+not publish its queue** to anyone. No MediaSession call can therefore hand a player "this whole tree,
+shuffled". Older builds tried writing the tree as an `.m3u` for Poweramp: that **does not work** —
+it treats the playlist as a single track, reports a playback failure and skips it, and it never
+imports a foreign m3u into its own playlists.
 
-1. **By library id** (`playFromMediaId`) — the most accurate. The app connects to the player's own
-   media browser service (the API Android Auto uses; Poweramp exposes
-   `com.maxmpz.audioplayer/...BrowserService`), matches the song by title and artist in that
-   library, and plays it by the id the player itself assigned. The lookup is strictly bounded:
-   breadth-first subscription waves, at most 300 folders and 4000 items, a 4-second budget, and it
-   stops on the first exact title match — so a huge library can never hang the bar.
-2. **By name** (`playFromSearch`) — the standard request Android Auto and voice assistants use.
-3. **By file** (`playFromUri`) — the file's MediaStore URI.
+**What 1.0 does: the app is the engine.** When you tap a song, the app builds the queue itself (the
+whole tree, sub-folders included) and hands the player one song at a time, watching the position to
+start the next just before the current one ends. The price is a **gap of roughly 0.3–1 second
+between songs** (a player cannot be asked to follow on seamlessly); what you get is a complete
+shuffle range and a real queue position.
 
-**The shuffle mode is preserved** (v0.10 and later): a player usually answers "play this one song" by
-building a fresh queue, and shuffle belongs to the queue it discarded — which is why picking a song
-used to turn shuffle off. The app now remembers the **shuffle and repeat** modes before the request
-and puts them back once the song has really changed; if nothing changed, it does nothing at all. The
-setting "Keep shuffle when picking songs" (on by default) turns this off.
+**Four switches in the panel header** (tap to flip, all remembered):
 
-> On the implementation (from 0.14 the app simply **leaves it alone**): Poweramp's shuffle is not a
-> switch but a **cycle** (sequential → random songs → random categories → …). Pressing its shuffle
-> once therefore moves the setting on to the next mode rather than putting it back, so every attempt to
-> "help" it ends up changing the mode that was chosen in Poweramp. There is also no readable shuffle
-> accessor at all — the status page reports `随机接口=none`, and the player publishes shuffle only as
-> that cycling custom action (`自定义动作=SHUFFLE|REPEAT|…`).
->
-> So the default is now "never touch it": the app neither reads nor writes the player's shuffle mode and
-> leaves it exactly as it was set in Poweramp. The other mechanisms (press only when it changed, always
-> press once, transport command, notification button) remain selectable for players that offer
-> something better, and the status page reports `随机接口=`, `随机动作=`, `通知按钮=` and `自定义动作=`.
-> A "point-song route" setting also exists, defaulting to file uri, which needs no walk through the
-> player's browse tree — that walk was the several seconds a tapped song used to take.
+| Switch | On | Off |
+| --- | --- | --- |
+| **🔀 Shuffle / ➡ In order** | Shuffled by the app | The folder's own order, straight through, then from the top |
+| **+ subfolders / this folder** | Range = this folder **and everything below it** | Only the songs **directly in** this folder |
+| **🔂 Repeat one** | Tapping a song repeats that song until another mode is chosen | Normal playback |
+| **tap = queue / tap = one song** | The tapped song becomes the **first song of the whole queue** | That one song alone |
 
-**"▶ 全部" makes shuffle cover a whole folder tree.** How far a queue reaches is decided by the
-player, and Poweramp plays only a folder's own songs — its sub-folders stay separate even in
-Poweramp's own UI — so no point-song request can widen the range. The panel header therefore carries
-"▶ 全部": the app writes the current folder **including every sub-folder** into an `.m3u` playlist
-next to the songs, then asks the player to open it. The player builds the queue from a playlist like
-it would from any other, so shuffle, gapless switching and the equaliser, effects and DAC output all
-stay inside the player, with the chosen folder tree as the range.
+- **"▶ 全部"** (top left of the panel) plays the whole folder range according to those switches.
+- **Tapping a song**: repeat-one on → that song over and over; otherwise tap-carries-the-queue on →
+  that song leads the queue (shuffled after it, or the folder's own order from there on); both off →
+  that one song alone.
+- The bar shows **`X/XX`**: which song of the queue is playing, and how many there are.
 
-Writing that file needs "all files access" (since Android 10 the system's playlist table is closed to
-third-party apps, so a file is the only route); the settings page has a row for it. The app writes one
-fixed file, `Music/MusicBar/MusicBar 随机 - 播放列表.m3u`, overwriting it every time — nothing is
-written into the music folders and nothing accumulates. A "clean up generated playlists" button on
-the settings page removes the playlists the app has written, including the per-folder files 0.16 left
-behind.
+**Point-song ladder**: the app tries ① the player's own media browser, playing by library id
+(Poweramp supports this) ② `playFromSearch` ③ playing the file directly, checking after each attempt
+whether the track really changed. The player is **never** brought to the foreground, so your game is
+never switched out, and a song tapped while paused is resumed automatically.
 
-**Point-song while paused is fixed**: some players (Poweramp among them) accept the request, load
-the new track, and then just sit there because playback was paused — older builds misread that as a
-failure and moved on to the next strategy, scrambling the state. The app now detects "track changed
-but still paused" and sends a resume command, so tapping a song while paused actually starts it.
+### Defaults (all adjustable in the settings)
 
-The player is **never** brought to the foreground, so your game is never switched out.
+| Setting | Default | Notes |
+| --- | --- | --- |
+| Shape | 3 cm tall bar | From the screen's physical DPI (273 ppi → about 322 px, ~17.5% of the height) |
+| Length | 60% of the screen width | 20%–100% |
+| Position | Bottom centre, 8 dp from the edge | Draggable anywhere, or docked to the top |
+| Idle opacity | **35%** | Fades after 4 seconds, returns to 90% on touch |
+| Visibility | Only with an active session | Hidden once playback has fully stopped |
+| Cover art | Off | A 46dp thumbnail on the left when on |
+| Library panel | 3 columns | A sub-folder row reads "name · N songs" (N includes its own sub-folders) |
 
 ### Known limitations
 
-1. **The bar's rectangle consumes touches** — an overlay is a single window, so the game cannot be
-   tapped where the bar covers it. Mitigations: collapse it, dock it over unused UI, lower the
-   opacity. Inherent to Android overlays.
-2. **Nothing shows without permissions**; without notification access only a hint is displayed.
-3. **Marquee text** for long titles is unreliable on unfocused windows and some ROMs just truncate.
+1. **The gap between songs** when the app builds the queue: roughly 0.3–1 s. That is the price of
+   going around the player's own queue limits.
+2. **The bar's rectangle consumes touches** — an overlay is one window, so the game cannot be tapped
+   where the bar covers it. Collapse it, dock it over unused UI, or lower the opacity. Inherent to
+   Android overlays.
+3. **The player's own shuffle switch is left alone**: Poweramp's shuffle is a **cycle**
+   (sequential → random songs → random categories → …) with no readable accessor
+   (`随机接口=none` on the status page), so any attempt to "help" it would change the mode you set.
+   The app shuffles by itself instead, independently of that setting.
 4. **Some games hide all overlays** (`setHideOverlayWindows` on Android 12+, or anti-cheat), and
    nothing can be done about those.
-5. **Physical sizing depends on the DPI the system reports**; if 3 cm measures off, adjust the
-   thickness value proportionally.
-6. **The library panel reads the system `MediaStore` index**, not the player's own library (the
-   player's library is only consulted for point-song). New folders may need a media rescan.
+5. **Marquee titles** are unreliable on unfocused windows; some ROMs simply truncate.
+6. **The panel reads the system `MediaStore` index**, not the player's own library (which is only
+   consulted for point-song). New folders may need a media rescan.
+7. **Sizing depends on the DPI the system reports**; if 3 cm measures off, adjust the thickness.
+
+### "Detects nothing" after an update?
+
+Android **unbinds an app's notification access when that app is updated**, leaving the bar unable to
+read anything. The app asks the system to rebind by itself and keeps retrying; if that is not enough,
+work through, lightest first: **① the app's "Re-check player" button → ② turn notification access
+off and on again → ③ reboot → ④ clear data** (which resets the settings and needs every permission
+again). The first two keep all your settings.
 
 ### Building
 
 Everything is built in GitHub Actions; no local JDK or Android SDK is needed. See
-`.github/workflows/build.yml` (installs cmdline-tools plus `platforms;android-35` and
-`build-tools;35.0.0`, Gradle 8.9 / AGP 8.7.3 / Java 17).
+`.github/workflows/build.yml` (cmdline-tools plus `platforms;android-35` and `build-tools;35.0.0`,
+Gradle 8.9 / AGP 8.7.3 / Java 17).
 
 ```powershell
 git add -A
 git commit -m "your change"
 git push origin main          # triggers a build
-git tag -a v0.8 -m "..."      # a tag also publishes a GitHub release with the APKs
-git push origin v0.8
+git tag -a v1.0 -m "..."      # a tag also publishes a GitHub release with the APKs
+git push origin v1.0
 ```
 
-- `main` is the stable line, `beta` holds experiments and is published as a pre-release.
-- Versioning: stable `v0.7`, beta `v0.7-beta1`, and the beta's `versionCode` stays below the stable
-  one of the same name so it upgrades cleanly.
+Pushing `main` builds the stable line, `beta` the experimental one; the tag names the release.
 
 ### Credits and attribution (please keep)
 
-- **Original author**: **SadEggs** — https://github.com/SadEggs
+- **Original author / requirements**: **SadEggs** — https://github.com/SadEggs
 - **Code written by**: **DeepSeek V4 Flash** — a human set the requirements, the model wrote the
   code, and GitHub Actions builds the APK in the cloud.
 - **License**: [MIT](LICENSE)
@@ -511,14 +370,12 @@ git push origin v0.8
 **You may** freely compile, modify, extend, repackage and publish this app — for yourself, to share,
 or on a store.
 
-**The one requirement**: you must credit the original author **SadEggs** and keep this repository's
-copyright notice and LICENSE. In practice, when you redistribute it or publish your own build,
-link back to the original project:
+**The one requirement**: credit the original author **SadEggs** and keep this repository's copyright
+notice and LICENSE:
 
 > Original project: FloatingMusicBar by SadEggs — https://github.com/SadEggs/musicwindow
 
-### License
+---
 
 [MIT](LICENSE) © 2026 SadEggs. The Android app is original work with no third-party dependencies;
-the Gradle/AGP versions only affect the build, not the shipped code. Attribution to the original
-author is required when you redistribute it or publish your own build.
+Gradle and AGP only affect the build, not the shipped code.

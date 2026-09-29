@@ -258,7 +258,7 @@ public class MediaBridge {
             return;
         }
         if (!hasNotificationAccess()) {
-            status = app.getString(R.string.bar_need_nls);
+            status = Lang.wrap(app).getString(R.string.bar_need_nls);
             setController(null);
             return;
         }
@@ -271,7 +271,7 @@ public class MediaBridge {
             status = "";
             pick(list);
         } catch (SecurityException e) {
-            status = app.getString(R.string.bar_need_nls);
+            status = Lang.wrap(app).getString(R.string.bar_need_nls);
             setController(null);
         } catch (Throwable t) {
             status = "";
