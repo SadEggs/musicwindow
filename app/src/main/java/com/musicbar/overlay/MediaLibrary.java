@@ -41,13 +41,16 @@ public final class MediaLibrary {
         public final String artist;
         public final String folder;
         public final long durationMs;
+        /** Absolute path of the file, which is what a playlist lists. */
+        public final String path;
 
-        Song(long id, String title, String artist, String folder, long durationMs) {
+        Song(long id, String title, String artist, String folder, long durationMs, String path) {
             this.id = id;
             this.title = title;
             this.artist = artist;
             this.folder = folder;
             this.durationMs = durationMs;
+            this.path = path;
         }
 
         public Uri uri() {
@@ -130,13 +133,15 @@ public final class MediaLibrary {
                     String title = cursor.getString(idxTitle);
                     String artist = cursor.getString(idxArtist);
                     long duration = cursor.getLong(idxDuration);
-                    String folder = folderOf(cursor.getString(idxPath), modern);
+                    String path = cursor.getString(idxPath);
+                    String folder = folderOf(path, modern);
 
                     Song song = new Song(id,
                             title == null ? "" : title,
                             artist == null ? "" : artist,
                             folder,
-                            duration);
+                            duration,
+                            path);
                     all.add(song);
 
                     List<Song> bucket = songsByFolder.get(folder);

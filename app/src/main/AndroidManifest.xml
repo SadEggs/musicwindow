@@ -21,6 +21,11 @@
         android:name="android.permission.READ_EXTERNAL_STORAGE"
         android:maxSdkVersion="32" />
 
+    <!-- "All files access" is only used to write an .m3u playlist into the music folders
+         (the "whole folder" button), because a playlist file is the only way to make a
+         player build a queue that covers sub-folders. Nothing else reads or writes files. -->
+    <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" />
+
     <!-- Android 11+ hides other apps' services unless this exact intent is
          declared. It is how the app discovers a player's media browser service,
          which would allow playing a song by its library id. -->

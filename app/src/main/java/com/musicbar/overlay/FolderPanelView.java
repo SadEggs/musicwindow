@@ -26,6 +26,9 @@ public class FolderPanelView extends LinearLayout {
         void onClose();
 
         void onPlaySong(MediaLibrary.Song song);
+
+        /** Ask for the whole folder branch - this folder and every sub-folder - to be played. */
+        void onPlayFolder(String folder);
     }
 
     private static final int COLUMNS = 3;
@@ -35,6 +38,7 @@ public class FolderPanelView extends LinearLayout {
 
     private final Callback cb;
     private final TextView parentButton;
+    private final TextView folderButton;
     private final TextView pathView;
     private final LinearLayout grid;
     private final int rowHeightPx;
@@ -69,6 +73,25 @@ public class FolderPanelView extends LinearLayout {
         parentButton.setOnClickListener(v -> goUp());
         header.addView(parentButton,
                 new LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT));
+
+        // Hands this whole branch to the player as a playlist, which is how a branch deeper
+        // than one level gets a queue of its own.
+        folderButton = new TextView(ctx);
+        folderButton.setText(R.string.lib_play_folder);
+        folderButton.setTextSize(13f);
+        folderButton.setTextColor(0xFFFFFFFF);
+        folderButton.setPadding(dp(8), dp(6), dp(8), dp(6));
+        folderButton.setBackgroundResource(R.drawable.bg_btn);
+        folderButton.setContentDescription(ctx.getString(R.string.cd_play_folder));
+        folderButton.setOnClickListener(v -> {
+            if (cb != null) {
+                cb.onPlayFolder(folder);
+            }
+        });
+        LayoutParams folderParams = new LayoutParams(LayoutParams.WRAP_CONTENT,
+                LayoutParams.WRAP_CONTENT);
+        folderParams.leftMargin = dp(6);
+        header.addView(folderButton, folderParams);
 
         pathView = new TextView(ctx);
         pathView.setTextSize(12f);
@@ -141,6 +164,11 @@ public class FolderPanelView extends LinearLayout {
         parentButton.setEnabled(!atRoot);
         parentButton.setClickable(!atRoot);
         parentButton.setAlpha(atRoot ? 0.4f : 1f);
+
+        boolean hasSongs = library.songCountInTree(folder) > 0;
+        folderButton.setEnabled(hasSongs);
+        folderButton.setClickable(hasSongs);
+        folderButton.setAlpha(hasSongs ? 1f : 0.4f);
 
         grid.removeAllViews();
 

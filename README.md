@@ -156,6 +156,17 @@
 >
 > 另外「**点播方式**」默认是`按文件`：直接播文件，**不需要遍历播放器的目录树**（这是之前点歌要等几秒的原因）。
 
+**「▶ 全部」：让随机覆盖整棵文件夹树**。播放器自己建立的队列覆盖多大范围，是播放器说了算 ——
+实测 Poweramp 从文件夹播放时**只播本层**，子文件夹的歌不会进队列（在它自己的界面里也一样），
+所以本 App 无法通过"点歌"把范围变大。于是面板头部加了「▶ 全部」：App 把**当前文件夹（含所有
+子文件夹）**的歌写成一个 `.m3u` 播放列表，放在**歌曲所在的那个文件夹里**，再让播放器打开它 ——
+播放器于是像打开普通播放列表一样建立队列，**随机、无缝切换、EQ/音效/DAC 输出全部由播放器自己完成**，
+范围就是那个文件夹的整棵树。
+
+写这个文件需要「**所有文件访问**」权限（Android 10 起系统不允许第三方 App 写系统「播放列表」表，
+只能写文件）；设置页有对应的一项。App 只写这一个播放列表文件，不读也不动其它文件。
+文件会留在那个文件夹里（同名覆盖），想清理时删掉 `MusicBar 随机 - *.m3u` 即可。
+
 **暂停状态下点歌也已修复**：有些播放器（例如 Poweramp）在暂停时收到点播请求，
 会把新歌装进队列**但不开始播放**，旧版本因此误判失败并去试下一种，结果状态被搅乱。
 现在检测到"歌换了但还在暂停"会**自动补一个播放指令**，所以暂停时点歌也能直接唱起来。
@@ -433,6 +444,19 @@ setting "Keep shuffle when picking songs" (on by default) turns this off.
 > something better, and the status page reports `随机接口=`, `随机动作=`, `通知按钮=` and `自定义动作=`.
 > A "point-song route" setting also exists, defaulting to file uri, which needs no walk through the
 > player's browse tree — that walk was the several seconds a tapped song used to take.
+
+**"▶ 全部" makes shuffle cover a whole folder tree.** How far a queue reaches is decided by the
+player, and Poweramp plays only a folder's own songs — its sub-folders stay separate even in
+Poweramp's own UI — so no point-song request can widen the range. The panel header therefore carries
+"▶ 全部": the app writes the current folder **including every sub-folder** into an `.m3u` playlist
+next to the songs, then asks the player to open it. The player builds the queue from a playlist like
+it would from any other, so shuffle, gapless switching and the equaliser, effects and DAC output all
+stay inside the player, with the chosen folder tree as the range.
+
+Writing that file needs "all files access" (since Android 10 the system's playlist table is closed to
+third-party apps, so a file is the only route); the settings page has a row for it. The app writes
+that one playlist file and touches nothing else. The file stays in the folder (same name overwrites);
+delete `MusicBar 随机 - *.m3u` to clean up.
 
 **Point-song while paused is fixed**: some players (Poweramp among them) accept the request, load
 the new track, and then just sit there because playback was paused — older builds misread that as a
