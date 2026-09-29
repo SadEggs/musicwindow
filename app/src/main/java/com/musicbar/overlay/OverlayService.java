@@ -81,6 +81,9 @@ public class OverlayService extends Service implements MediaBridge.Listener {
     private final MusicBarView.Callback callback = new MusicBarView.Callback() {
         @Override
         public void onPrev() {
+            if (restartEngineHere()) {
+                return;
+            }
             MediaBridge.get().prev();
             Beep.onTrackChange(OverlayService.this);
             touch();
@@ -94,6 +97,9 @@ public class OverlayService extends Service implements MediaBridge.Listener {
 
         @Override
         public void onNext() {
+            if (restartEngineHere()) {
+                return;
+            }
             MediaBridge.get().next();
             Beep.onTrackChange(OverlayService.this);
             touch();
@@ -483,6 +489,16 @@ public class OverlayService extends Service implements MediaBridge.Listener {
             return;
         }
         anchorFolder = song.folder;
+        engineSongFolder = song.folder;
+
+        // A request from the engine: go straight to the file. Walking the player's browse tree
+        // costs seconds, and the folder-queue subscribe further down drops the request whenever
+        // the panel has moved on in the meantime - exactly the case when the shuffle is started
+        // from a folder other than the one the player was last left on.
+        if (engineOn) {
+            startPlayAttempts(song, null, before, token);
+            return;
+        }
 
         if (Prefs.playRoute(this) == Prefs.ROUTE_URI) {
             // Playing the file itself needs no walk through the player's browse tree, which
@@ -740,6 +756,7 @@ public class OverlayService extends Service implements MediaBridge.Listener {
 
     private final List<MediaLibrary.Song> engineQueue = new ArrayList<>();
     private boolean engineOn;
+    private String engineSongFolder;
     private int engineIndex;
     private long engineQuietUntil;
     private String engineSeen;
@@ -754,6 +771,26 @@ public class OverlayService extends Service implements MediaBridge.Listener {
             handler.postDelayed(this, ENGINE_TICK_MS);
         }
     };
+
+    /**
+     * Next/prev while a tree shuffle is running: rather than let the player walk its own queue
+     * (which holds one folder, so the tree is lost at the first skip), start a fresh shuffle
+     * rooted where the current song actually lives - a song inside a sub-folder shuffles that
+     * sub-folder, a song in the top folder shuffles the whole tree. False means the caller
+     * should fall back to the player's own skip.
+     */
+    private boolean restartEngineHere() {
+        if (!Prefs.treePlay(this) || !engineOn) {
+            return false;
+        }
+        String folder = engineSongFolder;
+        if (folder == null || folder.isEmpty()) {
+            return false;
+        }
+        stopEngine();
+        startEngine(folder, null);
+        return true;
+    }
 
     /** Start shuffling a folder's whole tree, beginning with the song the user tapped. */
     private void startEngine(String folder, MediaLibrary.Song first) {
@@ -785,6 +822,13 @@ public class OverlayService extends Service implements MediaBridge.Listener {
         Toast.makeText(this, getString(R.string.engine_started, engineQueue.size()),
                 Toast.LENGTH_SHORT).show();
         enginePlayCurrent();
+        // Starting a shuffle is also a request to hear it: if the player was paused when the
+        // button was pressed, some players accept the selection and stay silent otherwise.
+        handler.postDelayed(() -> {
+            if (engineOn && !MediaBridge.get().isPlaying()) {
+                MediaBridge.get().play();
+            }
+        }, 1500L);
     }
 
     public void stopEngine() {
@@ -803,6 +847,7 @@ public class OverlayService extends Service implements MediaBridge.Listener {
             // One-based for reading: the first song of a fresh shuffle shows as 1.
             bar.setShuffleInfo(engineIndex + 1, engineQueue.size());
         }
+        engineSongFolder = engineQueue.get(engineIndex).folder;
         // Ignore track changes for a moment: the one about to arrive is this request.
         engineQuietUntil = System.currentTimeMillis() + ENGINE_QUIET_MS;
         engineSeen = null;

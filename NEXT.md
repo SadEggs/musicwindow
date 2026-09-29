@@ -1,6 +1,39 @@
 # FloatingMusicBar 下一步（交接文件）
 
-## 当前状态（截至 v0.23）
+## 当前状态（截至 v0.24）
+
+- **需求 1 已完成**（v0.24）：`MusicBarView` 新增 `shuffleView`，挂在 `statusRow` 里
+  `timeView` 之后、`leftMargin = dp(14)`（故意离时钟远一点）；公开方法
+  `setShuffleInfo(position, total)`，position<=0 时隐藏；`OverlayService.enginePlayCurrent()`
+  里调用 `bar.setShuffleInfo(engineIndex + 1, engineQueue.size())`，`stopEngine()` 里清 0。
+  文案 `R.string.shuffle_pos` =「随机 %1$d/%2$d」/「Shuffle %1$d/%2$d」。
+- **只剩需求 3 未做**；需求 2 用户待确认。
+
+## v0.24 实测反馈：两个待修 bug（优先于需求 3）
+
+1. **在子文件夹里"切歌"不会自动开始随机该子文件夹**
+   - 现象：在子文件夹里按悬浮条的上一首/下一首（切歌）时，只是播放器自己在自己的队列里跳，
+     **不会启动本 App 的引擎**，所以随机范围还是 Poweramp 的（常常落回大文件夹本层）。
+   - 方向：悬浮条 `Callback` 里的 next/prev（`onNext` / `onPrev`，走
+     `MediaBridge` 的 `skipToNext` / `skipToPrevious` 那两条）在 `Prefs.treePlay` 打开时，
+     应先取"当前正在播放歌曲所在的文件夹"，再调用 `startEngine(folder, null)`，
+     即切歌 = 以当前歌曲所在文件夹为根重新开始随机。注意 `engineOn` 会挡住递归，
+     必要时在切歌入口先 `stopEngine()` 再 `startEngine(...)`。
+   - 需要确认的语义：按"上一首"时是从该文件夹重新随机（推荐），还是要按随机列表往回走。
+
+2. **暂停状态下、或从子文件夹返回上级大文件夹后按「▶ 全部」→ 播放器无响应，随机起不来**
+   - 现象：播放器毫无反应，整树随机没开始。
+   - 怀疑点（按可能性排序）：
+     a. `playFromLibrary` 里 `Prefs.folderPlay(this)` 那段会先 `browser.keepSubscribed(
+        browser.lastParent())` 再 `handler.postDelayed(...)` 点歌，且**用 token 校验**；
+        面板返回上级/切换文件夹期间 token 很可能已经变了 → 整个播放请求被丢弃 → 表现就是"没响应"。
+        引擎路径不需要"订阅文件夹队列"，应绕开这一段（例如给 `playFromLibrary` 加一个
+        `boolean plain` 参数，或在引擎里直接走 `startPlayAttempts`）。
+     b. 暂停状态下部分播放器不接受 `playFromMediaId`，需要先 `transport.play()`
+        （或点歌后再补一次 play）。
+     c. `PlayerBrowser.findMediaId(..., budgetMs)` 超时后再走 URI，整体拖到 2.5s+ 才动，
+        用户观感也是"没响应"。
+   - 复现要点：① 暂停 → 按「▶ 全部」 ② 进子文件夹 → 用面板返回上级 → 按「▶ 全部」。
 
 - 仓库 `SadEggs/musicwindow`，分支 `main`（稳定）/ `beta`（同步），标签 v0.23 已发布为 **pre-release**。
 - v0.23 里「整树随机」**已可用**（用户 2025 实测确认："现在是整个树开始了"）。
