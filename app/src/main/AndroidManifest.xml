@@ -53,6 +53,15 @@
             </intent-filter>
         </activity>
 
+        <!-- The playlist file is handed to the player as a content URI, because a file://
+             path is not readable by another app under scoped storage. The provider serves
+             this app's own playlist folder and nothing else. -->
+        <provider
+            android:name=".PlaylistProvider"
+            android:authorities="com.musicbar.overlay.playlists"
+            android:exported="false"
+            android:grantUriPermissions="true" />
+
         <service
             android:name=".OverlayService"
             android:exported="false"

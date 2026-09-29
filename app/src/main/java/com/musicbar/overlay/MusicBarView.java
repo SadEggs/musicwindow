@@ -115,6 +115,11 @@ public class MusicBarView extends LinearLayout {
         // The bar handles its own feedback: the system's touch sound would beep on
         // every prev/next tap, which is unwanted over the tablet speaker.
         setSoundEffectsEnabled(false);
+        // Nothing in the bar ever takes focus. A focused window would make the system show
+        // the navigation bar over the game, and the bar works by touch alone.
+        setFocusable(false);
+        setFocusableInTouchMode(false);
+        setDescendantFocusability(FOCUS_BLOCK_DESCENDANTS);
 
         // ---- full layout -------------------------------------------------------
         fullBox = new LinearLayout(ctx);

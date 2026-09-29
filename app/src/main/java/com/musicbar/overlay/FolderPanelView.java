@@ -51,6 +51,12 @@ public class FolderPanelView extends LinearLayout {
         super(ctx);
         this.cb = callback;
         setOrientation(VERTICAL);
+        // Never take focus: a focused window makes the system show the navigation bar, which
+        // over a full-screen game covers the very thing this overlay exists to stay out of.
+        // Touch, clicks and scrolling all work without focus.
+        setFocusable(false);
+        setFocusableInTouchMode(false);
+        setDescendantFocusability(FOCUS_BLOCK_DESCENDANTS);
         setBackgroundResource(R.drawable.bg_bar);
         // Tapping tiles should not make the system touch sound: the panel sits over
         // a game and the tablet speaker stays quiet.
