@@ -790,11 +790,18 @@ public class OverlayService extends Service implements MediaBridge.Listener {
     public void stopEngine() {
         engineOn = false;
         handler.removeCallbacks(engineTick);
+        if (bar != null) {
+            bar.setShuffleInfo(0, 0);
+        }
     }
 
     private void enginePlayCurrent() {
         if (engineIndex < 0 || engineIndex >= engineQueue.size()) {
             return;
+        }
+        if (bar != null) {
+            // One-based for reading: the first song of a fresh shuffle shows as 1.
+            bar.setShuffleInfo(engineIndex + 1, engineQueue.size());
         }
         // Ignore track changes for a moment: the one about to arrive is this request.
         engineQuietUntil = System.currentTimeMillis() + ENGINE_QUIET_MS;

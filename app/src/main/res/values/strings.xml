@@ -126,6 +126,7 @@
     <string name="set_tree_play">整树随机（App 自己排歌）</string>
     <string name="tree_play_hint">默认开启。Poweramp 的文件夹队列不含子文件夹，也不接受外部播放列表，所以由 App 自己决定随机顺序，在每首结束前约 1.5 秒把下一首点给播放器。代价：每首之间约 0.3~1 秒空隙（无缝衔接会丢），偶尔可能先冒出 Poweramp 队列的下一首一小段。关掉即恢复原始行为。</string>
     <string name="engine_started">整树随机开始：共 %1$d 首</string>
+    <string name="shuffle_pos">随机 %1$d/%2$d</string>
     <string name="btn_check_playlist">检查播放器能否识别播放列表</string>
     <string name="check_running">正在询问播放器…</string>
     <string name="check_found">播放器认识它：媒体 ID = %1$s，来源 = %2$s。那就把上面的开关打开，点歌会自动播整棵树。</string>
