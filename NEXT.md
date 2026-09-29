@@ -15,6 +15,8 @@
   靠左、`leftMargin = dp(6)`，显示 `X/XX`（与状态栏同一个 `setShuffleInfo` 一起更新）。
 - **v0.27**：面板头部新增「🔀 随机 / ➡ 顺序」开关（`Prefs.K_PANEL_SHUFFLE` / `panelShuffle` /
   `setPanelShuffle`；`FolderPanelView.modeButton` + `refreshMode()`）。
+  【v0.28 起签名变为 4 参数】`startEngine(folder, first, shuffle, deep)`，`deep` 决定用
+  `songsInTree` 还是 `songsIn`；调用点必须带 4 个参数。
   随机模式：`onPlayFolder` → `startEngine(folder, null, true)`；`onPlaySong` → **即使整树随机已在跑
   也重开随机**（`startEngine(song.folder, song, true)`）—— 这是修掉"引擎在跑时点歌只播一首"的关键。
   顺序模式：`▶ 全部` → `startEngine(folder, null, false)`（`engineShuffle=false`，不洗牌，走完从头再来）；
