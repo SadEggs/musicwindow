@@ -30,6 +30,9 @@ public class FolderPanelView extends LinearLayout {
 
     private static final int COLUMNS = 3;
 
+    /** Upper bound on tiles for one folder, so a huge branch cannot stall the panel. */
+    private static final int MAX_TILES = 600;
+
     private final Callback cb;
     private final TextView parentButton;
     private final TextView pathView;
@@ -148,10 +151,36 @@ public class FolderPanelView extends LinearLayout {
 
         List<Item> items = new ArrayList<>();
         for (String child : library.foldersIn(folder)) {
-            items.add(Item.folder(child));
+            int own = library.songCountIn(child);
+            int tree = library.songCountInTree(child);
+            String name = MediaLibrary.nameOf(child);
+            StringBuilder label = new StringBuilder(name == null ? child : name);
+            if (tree > 0) {
+                // Show the size of the branch before descending into it: how many songs sit
+                // directly here, and how many more are waiting below.
+                if (tree == own) {
+                    label.append(" \u00b7 ").append(own);
+                } else {
+                    label.append(" \u00b7 ").append(own).append('+').append(tree - own);
+                }
+            }
+            items.add(Item.folder(child, label.toString()));
         }
         for (MediaLibrary.Song song : library.songsIn(folder)) {
-            items.add(Item.song(song));
+            items.add(Item.song(song, song.title));
+        }
+        if (Prefs.showSubSongs(ctx) && items.size() < MAX_TILES) {
+            // Then the songs that live deeper in this branch, labelled with the path below
+            // the folder being shown, so nothing in the tree is invisible from up here.
+            for (MediaLibrary.Song song : library.songsInTree(folder)) {
+                if (items.size() >= MAX_TILES) {
+                    break;
+                }
+                if (MediaLibrary.sameFolder(song.folder, folder)) {
+                    continue;
+                }
+                items.add(Item.song(song, below(folder, song.folder) + " \u00b7 " + song.title));
+            }
         }
         if (items.isEmpty()) {
             grid.addView(makeNotice(R.string.lib_no_song));
@@ -234,6 +263,19 @@ public class FolderPanelView extends LinearLayout {
         return cell;
     }
 
+    /** The part of a song's folder path that lies below the folder being shown. */
+    private static String below(String base, String full) {
+        String root = base == null ? "" : base;
+        String path = full == null ? "" : full;
+        if (root.isEmpty()) {
+            return path;
+        }
+        if (path.startsWith(root + "/")) {
+            return path.substring(root.length() + 1);
+        }
+        return path;
+    }
+
     private int dp(float value) {
         return Math.round(value * getResources().getDisplayMetrics().density);
     }
@@ -252,13 +294,12 @@ public class FolderPanelView extends LinearLayout {
             this.song = song;
         }
 
-        static Item folder(String key) {
-            String name = MediaLibrary.nameOf(key);
-            return new Item(true, key, name == null ? key : name, null);
+        static Item folder(String key, String label) {
+            return new Item(true, key, label, null);
         }
 
-        static Item song(MediaLibrary.Song song) {
-            return new Item(false, null, song.title, song);
+        static Item song(MediaLibrary.Song song, String label) {
+            return new Item(false, null, label, song);
         }
     }
 }

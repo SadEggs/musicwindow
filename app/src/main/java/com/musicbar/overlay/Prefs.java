@@ -39,6 +39,9 @@ public final class Prefs {
     public static final String K_PLAY_ROUTE = "play_route";
     public static final String K_FOLDER_PLAY = "folder_play";
 
+    /** Whether a folder in the library panel also lists the songs of its sub-folders. */
+    public static final String K_SUB_SONGS = "sub_songs";
+
     public static final String EDGE_TOP = "top";
     public static final String EDGE_BOTTOM = "bottom";
     public static final String DEFAULT_PKG = "com.maxmpz.audioplayer";
@@ -180,6 +183,15 @@ public final class Prefs {
      */
     public static boolean folderPlay(Context c) {
         return sp(c).getBoolean(K_FOLDER_PLAY, true);
+    }
+
+    /**
+     * Whether a folder in the library panel also lists the songs of its sub-folders.
+     * Songs living deeper in the tree are otherwise only reachable by descending one
+     * level at a time, which makes a big folder look as if it held only a few tracks.
+     */
+    public static boolean showSubSongs(Context c) {
+        return sp(c).getBoolean(K_SUB_SONGS, true);
     }
 
     private static int clamp(int value, int min, int max) {
