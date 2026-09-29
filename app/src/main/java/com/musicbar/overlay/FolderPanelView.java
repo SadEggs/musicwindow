@@ -39,6 +39,7 @@ public class FolderPanelView extends LinearLayout {
     private final Callback cb;
     private final TextView parentButton;
     private final TextView folderButton;
+    private final TextView modeButton;
     private final TextView pathView;
     private final LinearLayout grid;
     private final int rowHeightPx;
@@ -46,6 +47,12 @@ public class FolderPanelView extends LinearLayout {
 
     private String folder = MediaLibrary.ROOT;
     private int panelHeightPx;
+
+    /** Shows what the two play actions will do: shuffle the branch, or play it in order. */
+    private void refreshMode() {
+        modeButton.setText(Prefs.panelShuffle(getContext())
+                ? R.string.panel_shuffle_on : R.string.panel_shuffle_off);
+    }
 
     public FolderPanelView(Context ctx, Callback callback) {
         super(ctx);
@@ -98,6 +105,23 @@ public class FolderPanelView extends LinearLayout {
                 LayoutParams.WRAP_CONTENT);
         folderParams.leftMargin = dp(6);
         header.addView(folderButton, folderParams);
+
+        // What the two play actions will do, and the switch between the two ways of doing it.
+        modeButton = new TextView(ctx);
+        modeButton.setTextSize(13f);
+        modeButton.setTextColor(0xFFFFFFFF);
+        modeButton.setPadding(dp(8), dp(6), dp(8), dp(6));
+        modeButton.setBackgroundResource(R.drawable.bg_btn);
+        modeButton.setContentDescription(ctx.getString(R.string.panel_shuffle_hint));
+        modeButton.setOnClickListener(v -> {
+            Prefs.setPanelShuffle(getContext(), !Prefs.panelShuffle(getContext()));
+            refreshMode();
+        });
+        LayoutParams modeParams = new LayoutParams(LayoutParams.WRAP_CONTENT,
+                LayoutParams.WRAP_CONTENT);
+        modeParams.leftMargin = dp(6);
+        header.addView(modeButton, modeParams);
+        refreshMode();
 
         pathView = new TextView(ctx);
         pathView.setTextSize(12f);

@@ -144,7 +144,6 @@ public class MainActivity extends Activity {
                 new int[]{R.string.route_auto, R.string.route_id,
                         R.string.route_search, R.string.route_uri});
         addCheckBox(R.string.set_folder_play, Prefs.K_FOLDER_PLAY, true);
-        addCheckBox(R.string.set_sub_songs, Prefs.K_SUB_SONGS, true);
         addNote(R.string.set_collapse_hint);
 
         // ---- language and the status strip -------------------------------------
