@@ -92,6 +92,7 @@ public class MusicBarView extends LinearLayout {
     private LinearLayout statusRow;
     private TextView timeView;
     private TextView shuffleView;
+    private TextView queuePosView;
     private TextView batteryText;
     private BatteryView batteryView;
     private final SimpleDateFormat clockFormat =
@@ -163,6 +164,12 @@ public class MusicBarView extends LinearLayout {
         shuffleView.setVisibility(on ? VISIBLE : GONE);
         shuffleView.setText(on
                 ? getResources().getString(R.string.shuffle_pos, position, total) : "");
+        if (queuePosView != null) {
+            // The same queue, said in the short form: which song of how many, right there in
+            // the main view where the album art is.
+            queuePosView.setVisibility(on ? VISIBLE : GONE);
+            queuePosView.setText(on ? position + "/" + total : "");
+        }
     }
 
     private void updateClock() {
@@ -273,6 +280,18 @@ public class MusicBarView extends LinearLayout {
         batteryText.setTextColor(STATUS_COLOR);
         statusRow.addView(batteryText,
                 new LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT));
+
+        // Queue position, on the left but a row below the clock and above the album art, so it
+        // reads as the queue rather than as part of the time.
+        queuePosView = new TextView(ctx);
+        queuePosView.setTextSize(11f);
+        queuePosView.setTextColor(STATUS_COLOR);
+        queuePosView.setVisibility(GONE);
+        LayoutParams queuePosParams =
+                new LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT);
+        queuePosParams.leftMargin = dp(6);
+        queuePosParams.topMargin = dp(2);
+        fullBox.addView(queuePosView, queuePosParams);
 
         LinearLayout row = new LinearLayout(ctx);
         row.setOrientation(HORIZONTAL);

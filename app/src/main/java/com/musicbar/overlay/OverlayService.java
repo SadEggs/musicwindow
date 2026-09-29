@@ -81,7 +81,7 @@ public class OverlayService extends Service implements MediaBridge.Listener {
     private final MusicBarView.Callback callback = new MusicBarView.Callback() {
         @Override
         public void onPrev() {
-            if (restartEngineHere()) {
+            if (stepEngine(-1)) {
                 return;
             }
             MediaBridge.get().prev();
@@ -97,7 +97,7 @@ public class OverlayService extends Service implements MediaBridge.Listener {
 
         @Override
         public void onNext() {
-            if (restartEngineHere()) {
+            if (stepEngine(1)) {
                 return;
             }
             MediaBridge.get().next();
@@ -773,22 +773,28 @@ public class OverlayService extends Service implements MediaBridge.Listener {
     };
 
     /**
-     * Next/prev while a tree shuffle is running: rather than let the player walk its own queue
-     * (which holds one folder, so the tree is lost at the first skip), start a fresh shuffle
-     * rooted where the current song actually lives - a song inside a sub-folder shuffles that
-     * sub-folder, a song in the top folder shuffles the whole tree. False means the caller
-     * should fall back to the player's own skip.
+     * Move one step through the shuffle list the engine built, which is what a skip should do
+     * while a tree shuffle is running: forward stays inside the tree, and backward retraces the
+     * list rather than starting a new order. False means no shuffle is running, and the caller
+     * falls back to the player's own skip.
      */
-    private boolean restartEngineHere() {
-        if (!Prefs.treePlay(this) || !engineOn) {
+    private boolean stepEngine(int delta) {
+        if (!Prefs.treePlay(this) || !engineOn || engineQueue.isEmpty()) {
             return false;
         }
-        String folder = engineSongFolder;
-        if (folder == null || folder.isEmpty()) {
-            return false;
+        int next = engineIndex + delta;
+        if (next >= engineQueue.size()) {
+            // The end of the list: a fresh order rather than the same one again.
+            List<MediaLibrary.Song> again = new ArrayList<>(engineQueue);
+            Collections.shuffle(again);
+            engineQueue.clear();
+            engineQueue.addAll(again);
+            next = 0;
+        } else if (next < 0) {
+            next = engineQueue.size() - 1;
         }
-        stopEngine();
-        startEngine(folder, null);
+        engineIndex = next;
+        enginePlayCurrent();
         return true;
     }
 

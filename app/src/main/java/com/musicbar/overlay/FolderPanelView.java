@@ -185,37 +185,22 @@ public class FolderPanelView extends LinearLayout {
 
         List<Item> items = new ArrayList<>();
         for (String child : library.foldersIn(folder)) {
-            int own = library.songCountIn(child);
             int tree = library.songCountInTree(child);
             String name = MediaLibrary.nameOf(child);
             StringBuilder label = new StringBuilder(name == null ? child : name);
             if (tree > 0) {
-                // Show the size of the branch before descending into it: how many songs sit
-                // directly here, and how many more are waiting below.
-                if (tree == own) {
-                    label.append(" \u00b7 ").append(own);
-                } else {
-                    label.append(" \u00b7 ").append(own).append('+').append(tree - own);
-                }
+                // How many songs a tap inside here would shuffle: the whole branch, which is
+                // the number that matters, rather than the folder's own files alone.
+                label.append(" \u00b7 ").append(ctx.getString(R.string.folder_songs, tree));
             }
             items.add(Item.folder(child, label.toString()));
         }
         for (MediaLibrary.Song song : library.songsIn(folder)) {
             items.add(Item.song(song, song.title));
         }
-        if (Prefs.showSubSongs(ctx) && items.size() < MAX_TILES) {
-            // Then the songs that live deeper in this branch, labelled with the path below
-            // the folder being shown, so nothing in the tree is invisible from up here.
-            for (MediaLibrary.Song song : library.songsInTree(folder)) {
-                if (items.size() >= MAX_TILES) {
-                    break;
-                }
-                if (MediaLibrary.sameFolder(song.folder, folder)) {
-                    continue;
-                }
-                items.add(Item.song(song, below(folder, song.folder) + " \u00b7 " + song.title));
-            }
-        }
+        // Songs deeper in this branch are deliberately not listed here. The folder rows above
+        // say how many are down there, and a flat list of the whole tree buries the folder that
+        // was actually being looked for.
         if (items.isEmpty()) {
             grid.addView(makeNotice(R.string.lib_no_song));
             return;
