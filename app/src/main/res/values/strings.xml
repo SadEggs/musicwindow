@@ -124,7 +124,12 @@
     <string name="set_show_status">悬浮条显示时间与电量</string>
     <string name="status_hint">左上角是时间（时:分:秒），右上角是长方形电池图标加电量百分比。</string>
     <string name="set_tree_play">点一首歌也按整个文件夹树播放</string>
-    <string name="tree_play_hint">打开时：在面板里点一首歌，会把「整个文件夹树」做成播放列表交给播放器，你点的这首歌排在第一位，随机范围覆盖所有子文件夹。关掉时：点歌只播该文件夹本身（Poweramp 的行为是不含子文件夹）。</string>
+    <string name="tree_play_hint">默认关闭。原因：Poweramp 会把交给它的播放列表当成「一首歌」去播，打不开就跳过 —— 那比原来的「只播本层文件夹」更糟。只有下面那个诊断显示播放器确实认识这个播放列表时，才值得打开。</string>
+    <string name="btn_check_playlist">检查播放器能否识别播放列表</string>
+    <string name="check_running">正在询问播放器…</string>
+    <string name="check_found">播放器认识它：媒体 ID = %1$s，来源 = %2$s。那就把上面的开关打开，点歌会自动播整棵树。</string>
+    <string name="check_not_found">播放器不认识它（%1$s）。请打开 Poweramp，看「库 → 播放列表」里有没有这个文件；没有就说明 Poweramp 不会把 m3u 收进它的播放列表，自动播整棵树这条路在 Poweramp 上走不通。</string>
+    <string name="check_no_file">还没有生成播放列表，先到面板里点一次「▶ 全部」。</string>
     <string name="lib_play_folder">▶ 全部</string>
     <string name="cd_play_folder">把当前文件夹（含所有子文件夹）做成播放列表交给播放器，随机范围就是这个文件夹</string>
     <string name="playlist_empty">这个文件夹里没有歌曲</string>

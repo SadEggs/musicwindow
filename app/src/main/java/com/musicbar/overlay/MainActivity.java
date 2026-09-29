@@ -2,6 +2,7 @@ package com.musicbar.overlay;
 
 import android.Manifest;
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -12,6 +13,8 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+
+import java.io.File;
 import android.os.PowerManager;
 import android.provider.Settings;
 import android.service.media.MediaBrowserService;
@@ -152,6 +155,7 @@ public class MainActivity extends Activity {
         addNote(R.string.status_hint);
         addCheckBox(R.string.set_tree_play, Prefs.K_TREE_PLAY, true);
         addNote(R.string.tree_play_hint);
+        addButton(R.string.btn_check_playlist, v -> checkPlaylist());
 
         // ---- advanced ---------------------------------------------------------
         addSection(R.string.sec_adv);
@@ -171,6 +175,38 @@ public class MainActivity extends Activity {
     /** Where this build comes from; the buttons below open both in a browser. */
     private static final String AUTHOR_URL = "https://github.com/SadEggs";
     private static final String REPO_URL = "https://github.com/SadEggs/musicwindow";
+
+    /**
+     * Ask the player's own browser about the playlist this app writes. A player reaches a
+     * playlist only through its own library, so whether its browser carries this one decides
+     * whether the automatic route can work at all. Worth having the answer in one tap.
+     */
+    private void checkPlaylist() {
+        if (!Playlists.allowed(this)) {
+            Toast.makeText(this, getString(R.string.playlist_need_perm), Toast.LENGTH_LONG).show();
+            return;
+        }
+        File file = new File(Playlists.playlistDir(),
+                "MusicBar \u968f\u673a - \u64ad\u653e\u5217\u8868.m3u");
+        if (!file.isFile()) {
+            Toast.makeText(this, getString(R.string.check_no_file), Toast.LENGTH_LONG).show();
+            return;
+        }
+        String name = file.getName();
+        final String title = name.endsWith(".m3u") ? name.substring(0, name.length() - 4) : name;
+        final String path = file.getAbsolutePath();
+        Toast.makeText(this, getString(R.string.check_running), Toast.LENGTH_SHORT).show();
+        PlayerBrowser.get(this).findMediaId(title, "", 4000L, (mediaId, how) -> runOnUiThread(() -> {
+            String message = mediaId == null || mediaId.isEmpty()
+                    ? getString(R.string.check_not_found, title)
+                    : getString(R.string.check_found, mediaId, how);
+            new AlertDialog.Builder(this)
+                    .setTitle(R.string.btn_check_playlist)
+                    .setMessage(message + "\n\n" + path)
+                    .setPositiveButton(android.R.string.ok, null)
+                    .show();
+        }));
+    }
 
     /** Open a link; if no browser answers, show the address so it can be copied. */
     private void openUrl(String url) {

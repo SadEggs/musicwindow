@@ -209,7 +209,10 @@ public final class Prefs {
     }
 
     public static boolean treePlay(Context c) {
-        return sp(c).getBoolean(K_TREE_PLAY, true);
+        // Off by default: Poweramp takes a playlist handed to its media session as a track,
+        // fails to open it and skips on, which is worse than plain folder playback. Worth
+        // turning on only once the diagnostic says the player lists this playlist itself.
+        return sp(c).getBoolean(K_TREE_PLAY, false);
     }
 
     public static boolean showStatus(Context c) {
