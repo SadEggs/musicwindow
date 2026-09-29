@@ -31,6 +31,10 @@ public final class MediaLibrary {
     /** Folder key of the storage root. */
     public static final String ROOT = "";
 
+    /** Bounds on walking a whole branch of the folder tree. */
+    private static final int MAX_TREE_DEPTH = 24;
+    private static final int MAX_TREE_SONGS = 5000;
+
     public static final class Song {
         public final long id;
         public final String title;
@@ -178,6 +182,55 @@ public final class MediaLibrary {
         }
         Collections.sort(list, (a, b) -> a.title.compareToIgnoreCase(b.title));
         return list;
+    }
+
+    /** How many songs live directly in this folder. */
+    public synchronized int songCountIn(String folder) {
+        List<Song> bucket = songsByFolder.get(key(folder));
+        return bucket == null ? 0 : bucket.size();
+    }
+
+    /** How many songs live in this folder and in everything under it. */
+    public synchronized int songCountInTree(String folder) {
+        return songsInTree(folder).size();
+    }
+
+    /**
+     * Every song in this folder and in its sub-folders, folder by folder and then by title,
+     * so a whole branch can be shown or shuffled without descending into each level first.
+     * The depth and the size are both bounded: a library can nest arbitrarily deep, and the
+     * panel must never try to build a view for tens of thousands of tiles.
+     */
+    public synchronized List<Song> songsInTree(String folder) {
+        List<Song> out = new ArrayList<>();
+        collectTree(key(folder), out, 0);
+        return out;
+    }
+
+    private void collectTree(String dir, List<Song> out, int depth) {
+        if (depth > MAX_TREE_DEPTH || out.size() >= MAX_TREE_SONGS) {
+            return;
+        }
+        List<Song> own = songsByFolder.get(dir);
+        if (own != null) {
+            List<Song> sorted = new ArrayList<>(own);
+            Collections.sort(sorted, (a, b) -> a.title.compareToIgnoreCase(b.title));
+            out.addAll(sorted);
+        }
+        Set<String> kids = childrenByFolder.get(dir);
+        if (kids == null) {
+            return;
+        }
+        List<String> names = new ArrayList<>(kids);
+        Collections.sort(names, (a, b) -> a.compareToIgnoreCase(b));
+        for (String kid : names) {
+            collectTree(kid, out, depth + 1);
+        }
+    }
+
+    /** Whether two folder keys mean the same folder. */
+    public static boolean sameFolder(String a, String b) {
+        return key(a).equals(key(b));
     }
 
     /**

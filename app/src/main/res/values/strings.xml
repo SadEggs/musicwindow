@@ -115,6 +115,7 @@
     <string name="diag_custom">自定义动作</string>
     <string name="diag_queue">队列</string>
     <string name="set_folder_play">按文件夹播放（随机的范围=文件夹）</string>
+    <string name="set_sub_songs">文件夹内一并显示子文件夹的歌曲（显示为 子目录 · 歌名 和 本层+子层 数量）</string>
     <string name="btn_recheck">重新检测播放器</string>
     <string name="hint_recheck">更新安装后如果检测不到播放器、悬浮条不出来，先点上面的「重新检测播放器」——它会请系统重新绑定通知使用权，通常一下就恢复，不用清除数据。</string>
     <string name="toast_recheck">已重新检测，请看上方状态</string>
