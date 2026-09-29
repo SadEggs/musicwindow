@@ -25,6 +25,7 @@ import android.widget.Toast;
 import java.io.File;
 import java.util.List;
 import java.util.ArrayList;
+import java.util.Collections;
 
 /**
  * Foreground service that owns the overlay window.
@@ -473,7 +474,7 @@ public class OverlayService extends Service implements MediaBridge.Listener {
         // on, hand over the same playlist the all button writes, rotated so the tapped song
         // comes first: the queue is then the whole tree and shuffle covers all of it.
         if (Prefs.treePlay(this) && treeIsBigger(song.folder)) {
-            playFolderTree(song.folder, song);
+            startEngine(song.folder, song);
             return;
         }
         anchorFolder = song.folder;
@@ -719,6 +720,111 @@ public class OverlayService extends Service implements MediaBridge.Listener {
         }
         MediaLibrary library = MediaLibrary.get(this);
         return library.songCountInTree(folder) > library.songCountIn(folder);
+    }
+
+    /** The player can accept the request and still not start; then the manual route is next. */
+    // ---- the app's own shuffle over a folder tree -----------------------------------
+    // Poweramp's folder queue holds one folder and nothing below it, and no MediaSession
+    // call can hand a player a queue, so the player cannot shuffle a tree by itself. This
+    // is the app doing the shuffling: it decides the order and hands over one song at a
+    // time, switching shortly before each one ends. The price is the seamless join.
+
+    private static final long ENGINE_TICK_MS = 400L;
+    private static final long ENGINE_LEAD_MS = 1500L;
+    private static final long ENGINE_QUIET_MS = 3000L;
+
+    private final List<MediaLibrary.Song> engineQueue = new ArrayList<>();
+    private boolean engineOn;
+    private int engineIndex;
+    private long engineQuietUntil;
+    private String engineSeen;
+
+    private final Runnable engineTick = new Runnable() {
+        @Override
+        public void run() {
+            if (!engineOn) {
+                return;
+            }
+            engineStep();
+            handler.postDelayed(this, ENGINE_TICK_MS);
+        }
+    };
+
+    /** Start shuffling a folder's whole tree, beginning with the song the user tapped. */
+    private void startEngine(String folder, MediaLibrary.Song first) {
+        List<MediaLibrary.Song> songs = MediaLibrary.get(this).songsInTree(folder);
+        if (songs.isEmpty()) {
+            Toast.makeText(this, getString(R.string.playlist_empty), Toast.LENGTH_SHORT).show();
+            return;
+        }
+        List<MediaLibrary.Song> rest = new ArrayList<>(songs);
+        if (first != null) {
+            for (int i = rest.size() - 1; i >= 0; i--) {
+                if (sameSong(rest.get(i), first)) {
+                    rest.remove(i);
+                }
+            }
+        }
+        Collections.shuffle(rest);
+        engineQueue.clear();
+        if (first != null) {
+            engineQueue.add(first);
+        }
+        engineQueue.addAll(rest);
+        engineIndex = 0;
+        engineOn = true;
+        engineSeen = null;
+        anchorFolder = folder;
+        handler.removeCallbacks(engineTick);
+        handler.postDelayed(engineTick, ENGINE_TICK_MS);
+        Toast.makeText(this, getString(R.string.engine_started, engineQueue.size()),
+                Toast.LENGTH_SHORT).show();
+        enginePlayCurrent();
+    }
+
+    public void stopEngine() {
+        engineOn = false;
+        handler.removeCallbacks(engineTick);
+    }
+
+    private void enginePlayCurrent() {
+        if (engineIndex < 0 || engineIndex >= engineQueue.size()) {
+            return;
+        }
+        // Ignore track changes for a moment: the one about to arrive is this request.
+        engineQuietUntil = System.currentTimeMillis() + ENGINE_QUIET_MS;
+        engineSeen = null;
+        playFromLibrary(engineQueue.get(engineIndex));
+    }
+
+    private void engineStep() {
+        MediaBridge bridge = MediaBridge.get();
+        if (!bridge.hasSession()) {
+            return;
+        }
+        long now = System.currentTimeMillis();
+        String signature = bridge.trackSignature();
+        long position = bridge.positionMs();
+        long duration = bridge.durationMs();
+        boolean ending = duration > 0 && position > 0 && position >= duration - ENGINE_LEAD_MS;
+        boolean moved = signature != null && engineSeen != null && !signature.equals(engineSeen);
+        engineSeen = signature;
+        if (now < engineQuietUntil) {
+            return;
+        }
+        if (!ending && !moved) {
+            return;
+        }
+        engineIndex++;
+        if (engineIndex >= engineQueue.size()) {
+            // Through the tree once, then a fresh order rather than a repeat of the same one.
+            List<MediaLibrary.Song> again = new ArrayList<>(engineQueue);
+            Collections.shuffle(again);
+            engineQueue.clear();
+            engineQueue.addAll(again);
+            engineIndex = 0;
+        }
+        enginePlayCurrent();
     }
 
     /** The player can accept the request and still not start; then the manual route is next. */
