@@ -123,8 +123,9 @@
     <string name="lang_hint">This page reopens itself after a change; press Apply at the bottom to update the bar.</string>
     <string name="set_show_status">Show the clock and battery in the bar</string>
     <string name="status_hint">The clock sits at the top left as hours:minutes:seconds, the battery at the top right as a rectangular icon with a percentage.</string>
-    <string name="set_tree_play">Play the whole folder tree when one song is tapped</string>
-    <string name="tree_play_hint">Off by default, because Poweramp takes a playlist handed to it as a single track, fails to open it and skips on - worse than plain folder playback. Turn it on only once the diagnostic below says the player does list this playlist.</string>
+    <string name="set_tree_play">Shuffle the whole tree (the app picks the order)</string>
+    <string name="tree_play_hint">On by default. Poweramp's folder queue holds one folder and it does not take playlists from outside, so the app picks the order itself and hands over the next song about 1.5 seconds before each one ends. The cost is a gap of roughly 0.3 to 1 second between tracks, and occasionally a moment of the player's own next track. Turning it off restores the original behaviour.</string>
+    <string name="engine_started">Tree shuffle started: %1$d songs</string>
     <string name="btn_check_playlist">Check whether the player knows the playlist</string>
     <string name="check_running">Asking the player...</string>
     <string name="check_found">The player knows it: media id %1$s, found via %2$s. Turn the switch above on and tapping a song will play the whole tree.</string>
