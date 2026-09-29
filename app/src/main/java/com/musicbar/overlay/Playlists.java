@@ -58,20 +58,15 @@ public final class Playlists {
         if (name == null || name.isEmpty()) {
             name = "\u5168\u90e8";
         }
-        File target = null;
-        if (folder != null && !folder.isEmpty()) {
-            target = new File(folder, PREFIX + name + ".m3u");
-            if (write(target, songs)) {
-                return target;
-            }
-        }
-        // The songs' own folder can be read-only (a mounted card, a borrowed folder), so
-        // fall back to a folder every player scans.
-        target = new File(fallbackDir(), PREFIX + name + ".m3u");
-        return write(target, songs) ? target : null;
+        // Always the same file: one playlist, overwritten every time, in one folder of its
+        // own. Writing next to each folder's songs would leave one file per folder behind,
+        // which is exactly the kind of litter this app should not create.
+        File dir = playlistDir();
+        File target = new File(dir, PREFIX + "\u64ad\u653e\u5217\u8868.m3u");
+        return write(target, songs, name) ? target : null;
     }
 
-    private static boolean write(File file, List<MediaLibrary.Song> songs) {
+    private static boolean write(File file, List<MediaLibrary.Song> songs, String title) {
         Writer writer = null;
         try {
             File parent = file.getParentFile();
@@ -81,6 +76,8 @@ public final class Playlists {
             writer = new OutputStreamWriter(new FileOutputStream(file),
                     Charset.forName("UTF-8").newEncoder());
             writer.write("#EXTM3U\n");
+            // Players that understand it show this as the playlist's name.
+            writer.write("#PLAYLIST:" + title + "\n");
             for (MediaLibrary.Song song : songs) {
                 if (song == null || song.path == null || song.path.isEmpty()) {
                     continue;
@@ -105,10 +102,61 @@ public final class Playlists {
         }
     }
 
-    /** A music folder every player scans, used when the songs' own folder cannot be written. */
-    private static File fallbackDir() {
+    /**
+     * The one folder this app writes into: inside the standard music folder, so a player
+     * that scans there still lists the playlist, and kept apart from the user's own files.
+     * Falls back to the app's private external folder when that location is not writable.
+     */
+    private static File playlistDir() {
         File music = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC);
-        return new File(music, "MusicBar");
+        File dir = new File(music, "MusicBar");
+        if ((dir.isDirectory() || dir.mkdirs()) && dir.canWrite()) {
+            return dir;
+        }
+        return new File(Environment.getExternalStorageDirectory(), "MusicBar");
+    }
+
+    /** The playlist file, whether or not it has been written yet. */
+    public static File playlistFile() {
+        return new File(playlistDir(), PREFIX + "\u64ad\u653e\u5217\u8868.m3u");
+    }
+
+    /**
+     * Delete playlists this app wrote, including the ones 0.16 left next to the songs.
+     * Only files whose name starts with this app's prefix are ever touched. Returns how
+     * many were removed.
+     */
+    public static int cleanup() {
+        int removed = 0;
+        removed += deleteIn(playlistDir());
+        // 0.16 wrote one file per folder, inside the folder holding the songs.
+        for (String folder : MediaLibrary.foldersSnapshot()) {
+            if (folder == null || folder.isEmpty()) {
+                continue;
+            }
+            removed += deleteIn(new File(folder));
+        }
+        return removed;
+    }
+
+    /** Delete the playlists this app wrote in one folder, and nothing else. */
+    private static int deleteIn(File dir) {
+        int removed = 0;
+        File[] files = dir == null ? null : dir.listFiles();
+        if (files == null) {
+            return 0;
+        }
+        for (File file : files) {
+            if (!file.isFile()) {
+                continue;
+            }
+            String name = file.getName();
+            boolean playlist = name.endsWith(".m3u") || name.endsWith(".m3u8");
+            if (playlist && name.startsWith(PREFIX) && file.delete()) {
+                removed++;
+            }
+        }
+        return removed;
     }
 
     public static Uri uriOf(File file) {

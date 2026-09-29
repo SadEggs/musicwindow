@@ -20,8 +20,8 @@ android {
         applicationId 'com.musicbar.overlay'
         minSdk 26
         targetSdk 35
-        versionCode 17
-        versionName '0.16'
+        versionCode 18
+        versionName '0.17'
     }
 
     // The resources and the README are full of Chinese; make sure the sources are always

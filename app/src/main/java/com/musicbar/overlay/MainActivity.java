@@ -85,6 +85,7 @@ public class MainActivity extends Activity {
         notificationRow = addPermRow(R.string.perm_notif, v -> requestNotificationPermission());
         libraryRow = addPermRow(R.string.perm_library, v -> requestLibraryPermission());
         filesRow = addPermRow(R.string.perm_files, v -> requestAllFilesPermission());
+        addButton(R.string.btn_clean_playlists, v -> cleanPlaylists());
 
         // ---- start / stop -----------------------------------------------------
         addSection(R.string.sec_run);
@@ -457,6 +458,21 @@ public class MainActivity extends Activity {
         } catch (Throwable ignored) {
             openAppSettings();
         }
+    }
+
+    /**
+     * Delete the playlists this app wrote. 0.17 keeps a single file and overwrites it, but
+     * 0.16 left one per folder next to the songs, so there is a button to clear those out.
+     * It walks the library's folders, so it runs off the main thread.
+     */
+    private void cleanPlaylists() {
+        new Thread(() -> {
+            final int removed = Playlists.cleanup();
+            final String message = removed > 0
+                    ? getString(R.string.clean_done, removed)
+                    : getString(R.string.clean_none);
+            runOnUiThread(() -> Toast.makeText(this, message, Toast.LENGTH_SHORT).show());
+        }, "playlist-cleanup").start();
     }
 
     private void openAppSettings() {

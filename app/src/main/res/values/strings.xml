@@ -124,6 +124,9 @@
     <string name="playlist_created">已生成播放列表：%1$d 首（含子文件夹），已交给播放器</string>
     <string name="playlist_manual">播放器没有自动开始：请在 Poweramp 的「播放列表」里打开 %1$s</string>
     <string name="perm_files">所有文件访问（生成播放列表用）</string>
+    <string name="btn_clean_playlists">清理生成的播放列表</string>
+    <string name="clean_done">已清理 %1$d 个播放列表文件</string>
+    <string name="clean_none">没有需要清理的播放列表文件</string>
     <string name="btn_recheck">重新检测播放器</string>
     <string name="hint_recheck">更新安装后如果检测不到播放器、悬浮条不出来，先点上面的「重新检测播放器」——它会请系统重新绑定通知使用权，通常一下就恢复，不用清除数据。</string>
     <string name="toast_recheck">已重新检测，请看上方状态</string>
