@@ -150,6 +150,25 @@ public class MainActivity extends Activity {
 
         addSection(R.string.sec_apply);
         addButton(R.string.btn_apply, v -> applyLive());
+
+        // ---- about -------------------------------------------------------------
+        addSection(R.string.sec_about);
+        addButton(R.string.about_author, v -> openUrl(AUTHOR_URL));
+        addButton(R.string.about_repo, v -> openUrl(REPO_URL));
+        addNote(R.string.about_credit);
+    }
+
+    /** Where this build comes from; the buttons below open both in a browser. */
+    private static final String AUTHOR_URL = "https://github.com/SadEggs";
+    private static final String REPO_URL = "https://github.com/SadEggs/musicwindow";
+
+    /** Open a link; if no browser answers, show the address so it can be copied. */
+    private void openUrl(String url) {
+        try {
+            startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(url)));
+        } catch (Throwable t) {
+            Toast.makeText(this, url, Toast.LENGTH_LONG).show();
+        }
     }
 
     @Override

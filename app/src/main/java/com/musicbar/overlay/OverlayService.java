@@ -10,6 +10,8 @@ import android.graphics.PixelFormat;
 import android.graphics.drawable.Icon;
 import android.hardware.display.DisplayManager;
 import android.media.session.PlaybackState;
+import android.media.MediaScannerConnection;
+import android.net.Uri;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
@@ -387,6 +389,7 @@ public class OverlayService extends Service implements MediaBridge.Listener {
                 panelHeight,
                 WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
                 WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
+                        | WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL
                         | WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN
                         | WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED,
                 PixelFormat.TRANSLUCENT);
@@ -607,9 +610,28 @@ public class OverlayService extends Service implements MediaBridge.Listener {
         }
         final MediaBridge bridge = MediaBridge.get();
         final String before = bridge.trackSignature();
+        final Uri uri = Playlists.uriOf(file);
+        // Make the playlist readable for the player: a plain path would not be, and the
+        // player would report a playback failure instead of playing anything.
+        final String player = bridge.packageName();
+        if (uri != null && player != null && !player.isEmpty()) {
+            try {
+                grantUriPermission(player, uri, Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            } catch (Throwable ignored) {
+                // Without the grant the manual route below still works.
+            }
+        }
+        // Best effort: ask the system scanner to look at it, which some players follow.
+        try {
+            MediaScannerConnection.scanFile(this,
+                    new String[]{file.getAbsolutePath()},
+                    new String[]{"audio/x-mpegurl"}, null);
+        } catch (Throwable ignored) {
+            // A player that does not need the scan is unaffected.
+        }
         Toast.makeText(this, getString(R.string.playlist_created, songs.size()),
                 Toast.LENGTH_SHORT).show();
-        if (!bridge.playUri(Playlists.uriOf(file))) {
+        if (uri == null || !bridge.playUri(uri)) {
             return;
         }
         // Some players take a playlist only from their own list, so say where the file is

@@ -124,6 +124,10 @@
     <string name="playlist_created">已生成播放列表：%1$d 首（含子文件夹），已交给播放器</string>
     <string name="playlist_manual">播放器没有自动开始：请在 Poweramp 的「播放列表」里打开 %1$s</string>
     <string name="perm_files">所有文件访问（生成播放列表用）</string>
+    <string name="sec_about">关于</string>
+    <string name="about_author">作者主页（GitHub）</string>
+    <string name="about_repo">软件仓库 / 问题反馈（GitHub）</string>
+    <string name="about_credit">原作者 SadEggs，MIT 许可。这是一个个人自用改版，原仓库地址见上。</string>
     <string name="btn_clean_playlists">清理生成的播放列表</string>
     <string name="clean_done">已清理 %1$d 个播放列表文件</string>
     <string name="clean_none">没有需要清理的播放列表文件</string>

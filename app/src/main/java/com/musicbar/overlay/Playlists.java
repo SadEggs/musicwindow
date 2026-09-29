@@ -82,6 +82,13 @@ public final class Playlists {
                 if (song == null || song.path == null || song.path.isEmpty()) {
                     continue;
                 }
+                // Extended info first: players vary in how much of it they need, but an entry
+                // without it is rejected outright by more than one of them.
+                writer.write("#EXTINF:");
+                writer.write(Long.toString(Math.max(0L, song.durationMs / 1000L)));
+                writer.write(',');
+                writer.write(song.title == null ? "" : song.title);
+                writer.write('\n');
                 writer.write(song.path);
                 writer.write('\n');
             }
@@ -107,7 +114,7 @@ public final class Playlists {
      * that scans there still lists the playlist, and kept apart from the user's own files.
      * Falls back to the app's private external folder when that location is not writable.
      */
-    private static File playlistDir() {
+    static File playlistDir() {
         File music = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC);
         File dir = new File(music, "MusicBar");
         if ((dir.isDirectory() || dir.mkdirs()) && dir.canWrite()) {
@@ -159,7 +166,19 @@ public final class Playlists {
         return removed;
     }
 
+    /**
+     * The playlist as a content URI. A file:// URI cannot be read by the player at all under
+     * scoped storage, so the playlist is served through this app's own provider instead and
+     * the player is granted read access to that one URI.
+     */
     public static Uri uriOf(File file) {
-        return Uri.fromFile(file);
+        if (file == null) {
+            return null;
+        }
+        return new Uri.Builder()
+                .scheme("content")
+                .authority(PlaylistProvider.AUTHORITY)
+                .appendPath(file.getName())
+                .build();
     }
 }
