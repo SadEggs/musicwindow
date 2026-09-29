@@ -36,7 +36,8 @@ public class BatteryView extends View {
 
     @Override
     protected void onMeasure(int widthSpec, int heightSpec) {
-        setMeasuredDimension(resolveSize(dp(21), widthSpec), resolveSize(dp(11), heightSpec));
+        setMeasuredDimension(resolveSize((int) dp(21), widthSpec),
+                resolveSize((int) dp(11), heightSpec));
     }
 
     @Override
