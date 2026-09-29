@@ -206,15 +206,16 @@ public class OverlayService extends Service implements MediaBridge.Listener {
             // has to hold even while another shuffle is already running. The old check lived
             // inside playFromLibrary and was skipped exactly then, so tapping a song in a
             // sub-folder mid-shuffle played that one song and left the big folder's order alone.
-            // No master switch here any more. The panel's own two buttons say what a tap means,
-            // and the settings flag that used to gate this stayed at false on devices upgraded
-            // from the release where it defaulted off - which switched the engine off with
-            // nothing on screen saying so, while All kept working because it never checked it.
-            if (Prefs.panelShuffle(OverlayService.this)) {
-                startEngine(song.folder, song, true, Prefs.deepShuffle(OverlayService.this));
+            // Three visible switches decide what a tap means, and nothing else does. Repeat one
+            // first, because it is the most specific; then whether the tap carries a queue with
+            // it; otherwise it is that one song, with anything running stopped so that whatever
+            // was playing cannot take over when the song ends.
+            if (Prefs.singleRepeat(OverlayService.this)) {
+                startSingle(song);
+            } else if (Prefs.tapQueue(OverlayService.this)) {
+                startEngine(song.folder, song, Prefs.panelShuffle(OverlayService.this),
+                        Prefs.deepShuffle(OverlayService.this));
             } else {
-                // Order mode: this one song, and the shuffle that may have been running is
-                // stopped so nothing takes over when it ends.
                 stopEngine();
                 playFromLibrary(song);
             }
@@ -762,12 +763,15 @@ public class OverlayService extends Service implements MediaBridge.Listener {
 
     private static final long ENGINE_TICK_MS = 400L;
     private static final long ENGINE_LEAD_MS = 1500L;
+    /** Repeat one waits longer, so the last moment of the song is not cut off every time. */
+    private static final long ENGINE_SINGLE_LEAD_MS = 300L;
     private static final long ENGINE_QUIET_MS = 3000L;
 
     private final List<MediaLibrary.Song> engineQueue = new ArrayList<>();
     private boolean engineOn;
     private String engineSongFolder;
     private boolean engineShuffle = true;
+    private boolean engineSingle;
     private int engineIndex;
     private long engineQuietUntil;
     private String engineSeen;
@@ -814,6 +818,7 @@ public class OverlayService extends Service implements MediaBridge.Listener {
     /** Start shuffling a folder's whole tree, beginning with the song the user tapped. */
     private void startEngine(String folder, MediaLibrary.Song first, boolean shuffle, boolean deep) {
         engineShuffle = shuffle;
+        engineSingle = false;
         // Deep is the whole point: the branch below this folder, or just the folder's own songs.
         List<MediaLibrary.Song> songs = deep
                 ? MediaLibrary.get(this).songsInTree(folder)
@@ -823,21 +828,35 @@ public class OverlayService extends Service implements MediaBridge.Listener {
             return;
         }
         List<MediaLibrary.Song> rest = new ArrayList<>(songs);
+        int at = -1;
         if (first != null) {
-            for (int i = rest.size() - 1; i >= 0; i--) {
+            for (int i = 0; i < rest.size(); i++) {
                 if (sameSong(rest.get(i), first)) {
-                    rest.remove(i);
+                    at = i;
+                    break;
                 }
             }
         }
         if (shuffle) {
+            if (at >= 0) {
+                rest.remove(at);
+            }
             Collections.shuffle(rest);
         }
         engineQueue.clear();
-        if (first != null) {
+        if (first != null && shuffle) {
+            // Shuffled: the tapped song first, then the rest of the branch in a fresh order.
             engineQueue.add(first);
+            engineQueue.addAll(rest);
+        } else if (first != null && at >= 0) {
+            // In order, from the tapped song: the branch rotated so this song leads it, which
+            // keeps the folder's own sequence instead of jumping back to the first song.
+            for (int i = 0; i < rest.size(); i++) {
+                engineQueue.add(rest.get((at + i) % rest.size()));
+            }
+        } else {
+            engineQueue.addAll(rest);
         }
-        engineQueue.addAll(rest);
         engineIndex = 0;
         engineOn = true;
         engineSeen = null;
@@ -854,6 +873,23 @@ public class OverlayService extends Service implements MediaBridge.Listener {
                 MediaBridge.get().play();
             }
         }, 1500L);
+    }
+
+    /**
+     * One song on repeat: a queue of one, played again each time it ends, with the switch to the
+     * next song held back to the very end so the last moment is not cut off every time round.
+     */
+    private void startSingle(MediaLibrary.Song song) {
+        engineQueue.clear();
+        engineQueue.add(song);
+        engineIndex = 0;
+        engineOn = true;
+        engineShuffle = false;
+        engineSingle = true;
+        anchorFolder = song.folder;
+        handler.removeCallbacks(engineTick);
+        handler.postDelayed(engineTick, ENGINE_TICK_MS);
+        enginePlayCurrent();
     }
 
     public void stopEngine() {
@@ -888,7 +924,8 @@ public class OverlayService extends Service implements MediaBridge.Listener {
         String signature = bridge.trackSignature();
         long position = bridge.positionMs();
         long duration = bridge.durationMs();
-        boolean ending = duration > 0 && position > 0 && position >= duration - ENGINE_LEAD_MS;
+        long lead = engineSingle ? ENGINE_SINGLE_LEAD_MS : ENGINE_LEAD_MS;
+        boolean ending = duration > 0 && position > 0 && position >= duration - lead;
         boolean moved = signature != null && engineSeen != null && !signature.equals(engineSeen);
         engineSeen = signature;
         if (now < engineQuietUntil) {

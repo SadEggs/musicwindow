@@ -132,6 +132,12 @@
     <string name="panel_shuffle_off">➡ 顺序</string>
     <string name="panel_deep_on">含子文件夹</string>
     <string name="panel_deep_off">仅本层</string>
+    <string name="panel_single_on">🔂 单曲循环</string>
+    <string name="panel_single_off">🔂 不循环</string>
+    <string name="panel_queue_on">点歌带队列</string>
+    <string name="panel_queue_off">点歌只放这首</string>
+    <string name="single_hint">单曲循环：点某一首歌就一直重复这一首，直到你切换成别的模式（点「▶ 全部」或改别的开关）。</string>
+    <string name="queue_hint">点歌带队列：点某一首歌时，这首歌作为整个队列的第一首，效果和「▶ 全部」一样；随机模式下后面接的是随机顺序，顺序模式下是文件夹原本顺序（从这首歌往后排）。关闭则只播这一首。</string>
     <string name="deep_hint">含子文件夹：随机或播放的范围包含这个文件夹下面所有的子文件夹。仅本层：只在当前文件夹自己的歌曲里随机或顺序播放。</string>
     <string name="panel_shuffle_hint">随机：点「▶ 全部」在这个文件夹的整棵树里随机；点某一首歌，这首歌就是随机队列的第一首。顺序：点歌只放这一首。</string>
     <string name="btn_check_playlist">检查播放器能否识别播放列表</string>

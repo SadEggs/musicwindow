@@ -41,6 +41,8 @@ public class FolderPanelView extends LinearLayout {
     private final TextView folderButton;
     private final TextView modeButton;
     private final TextView deepButton;
+    private final TextView singleButton;
+    private final TextView queueButton;
     private final TextView pathView;
     private final LinearLayout grid;
     private final int rowHeightPx;
@@ -50,11 +52,30 @@ public class FolderPanelView extends LinearLayout {
     private int panelHeightPx;
 
     /** Shows what the two play actions will do: shuffle the branch, or play it in order. */
+    /** One header switch: a button that flips its own setting and redraws the row. */
+    private TextView makeSwitch(Context ctx, int hint, Runnable flip) {
+        TextView button = new TextView(ctx);
+        button.setTextSize(13f);
+        button.setTextColor(0xFFFFFFFF);
+        button.setPadding(dp(8), dp(6), dp(8), dp(6));
+        button.setBackgroundResource(R.drawable.bg_btn);
+        button.setContentDescription(ctx.getString(hint));
+        button.setOnClickListener(v -> {
+            flip.run();
+            refreshMode();
+        });
+        return button;
+    }
+
     private void refreshMode() {
         modeButton.setText(Prefs.panelShuffle(getContext())
                 ? R.string.panel_shuffle_on : R.string.panel_shuffle_off);
         deepButton.setText(Prefs.deepShuffle(getContext())
                 ? R.string.panel_deep_on : R.string.panel_deep_off);
+        singleButton.setText(Prefs.singleRepeat(getContext())
+                ? R.string.panel_single_on : R.string.panel_single_off);
+        queueButton.setText(Prefs.tapQueue(getContext())
+                ? R.string.panel_queue_on : R.string.panel_queue_off);
     }
 
     public FolderPanelView(Context ctx, Callback callback) {
@@ -141,6 +162,21 @@ public class FolderPanelView extends LinearLayout {
                 LayoutParams.WRAP_CONTENT);
         deepParams.leftMargin = dp(6);
         header.addView(deepButton, deepParams);
+
+        // Repeat one song for ever, and whether a tap carries the queue with it.
+        singleButton = makeSwitch(ctx, R.string.single_hint, () ->
+                Prefs.setSingleRepeat(getContext(), !Prefs.singleRepeat(getContext())));
+        LayoutParams singleParams = new LayoutParams(LayoutParams.WRAP_CONTENT,
+                LayoutParams.WRAP_CONTENT);
+        singleParams.leftMargin = dp(6);
+        header.addView(singleButton, singleParams);
+
+        queueButton = makeSwitch(ctx, R.string.queue_hint, () ->
+                Prefs.setTapQueue(getContext(), !Prefs.tapQueue(getContext())));
+        LayoutParams queueParams = new LayoutParams(LayoutParams.WRAP_CONTENT,
+                LayoutParams.WRAP_CONTENT);
+        queueParams.leftMargin = dp(6);
+        header.addView(queueButton, queueParams);
         refreshMode();
 
         pathView = new TextView(ctx);

@@ -61,6 +61,15 @@ public final class Prefs {
      */
     public static final String K_DEEP_SHUFFLE = "deep_shuffle";
 
+    /** Repeat the one song that was tapped, until some other mode is chosen. */
+    public static final String K_SINGLE_REPEAT = "single_repeat";
+
+    /**
+     * Whether a tap carries the folder's queue with it, or plays that one song alone. On: the
+     * tapped song is the queue's first song, exactly like the All button but starting there.
+     */
+    public static final String K_TAP_QUEUE = "tap_queue";
+
     public static final String EDGE_TOP = "top";
     public static final String EDGE_BOTTOM = "bottom";
     public static final String DEFAULT_PKG = "com.maxmpz.audioplayer";
@@ -240,6 +249,22 @@ public final class Prefs {
 
     public static void setDeepShuffle(Context c, boolean value) {
         sp(c).edit().putBoolean(K_DEEP_SHUFFLE, value).apply();
+    }
+
+    public static boolean singleRepeat(Context c) {
+        return sp(c).getBoolean(K_SINGLE_REPEAT, false);
+    }
+
+    public static void setSingleRepeat(Context c, boolean value) {
+        sp(c).edit().putBoolean(K_SINGLE_REPEAT, value).apply();
+    }
+
+    public static boolean tapQueue(Context c) {
+        return sp(c).getBoolean(K_TAP_QUEUE, true);
+    }
+
+    public static void setTapQueue(Context c, boolean value) {
+        sp(c).edit().putBoolean(K_TAP_QUEUE, value).apply();
     }
 
     public static boolean showStatus(Context c) {
