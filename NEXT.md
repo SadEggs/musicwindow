@@ -13,6 +13,18 @@
   并**移除**了 `FolderPanelView` 里平铺子文件夹歌曲的那一段（`Prefs.showSubSongs` 因此失效）；
   ③ 主界面新增 `queuePosView`（`MusicBarView`），在 `statusRow` 之下、专辑封面之上，
   靠左、`leftMargin = dp(6)`，显示 `X/XX`（与状态栏同一个 `setShuffleInfo` 一起更新）。
+- **v0.27**：面板头部新增「🔀 随机 / ➡ 顺序」开关（`Prefs.K_PANEL_SHUFFLE` / `panelShuffle` /
+  `setPanelShuffle`；`FolderPanelView.modeButton` + `refreshMode()`）。
+  随机模式：`onPlayFolder` → `startEngine(folder, null, true)`；`onPlaySong` → **即使整树随机已在跑
+  也重开随机**（`startEngine(song.folder, song, true)`）—— 这是修掉"引擎在跑时点歌只播一首"的关键。
+  顺序模式：`▶ 全部` → `startEngine(folder, null, false)`（`engineShuffle=false`，不洗牌，走完从头再来）；
+  点歌 → `stopEngine()` + `playFromLibrary(song)`（只播这一首）。
+  ⚠️ `startEngine` 现在有第三个参数 `boolean shuffle`，所有调用点都必须带上。
+  设置里「显示子文件夹歌曲」开关已删除。
+- **坑（新）**：**不要用 PowerShell 的 `Set-Content -Encoding UTF8` 改仓库里的文本文件** ——
+  Windows PowerShell 会写入 UTF-8 BOM，Gradle 解析 `build.gradle` 直接失败（只报 "1 error"，看不出原因）。
+  静态检查已加"任何 .gradle/.xml/.java 都不许有 BOM"。另外：给 GitHub API 传长文本时，
+  **不要内联进 shell 的 node -e**（双引号会被截断），写成临时文件再读。
 - **待定/未做**：顺序队列（非随机）的位置无法显示 —— Poweramp 不公开自己的播放队列；
   设置里「显示子文件夹歌曲」开关已失效，待清理。
 

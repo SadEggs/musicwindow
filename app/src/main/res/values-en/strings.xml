@@ -130,6 +130,9 @@
     <string name="folder_songs">%1$d songs</string>
     <string name="panel_shuffle_on">🔀 Shuffle</string>
     <string name="panel_shuffle_off">➡ In order</string>
+    <string name="panel_deep_on">+ subfolders</string>
+    <string name="panel_deep_off">this folder</string>
+    <string name="deep_hint">With subfolders: shuffling or playing a folder covers every sub-folder below it. This folder only: just the songs sitting directly in the folder being shown.</string>
     <string name="panel_shuffle_hint">Shuffle: All shuffles this folder\'s whole branch; tapping a song makes it the first song of that shuffle. In order: tapping a song plays just that song.</string>
     <string name="btn_check_playlist">Check whether the player knows the playlist</string>
     <string name="check_running">Asking the player...</string>

@@ -54,6 +54,13 @@ public final class Prefs {
     /** Whether the panel's play actions shuffle, or play the branch straight through. */
     public static final String K_PANEL_SHUFFLE = "panel_shuffle";
 
+    /**
+     * Whether shuffling a folder reaches into its sub-folders or stays on the folder's own
+     * songs. A key of its own, because the older tree-play flag may sit at false on a device
+     * that has been upgraded since, and a stale value there silently switched the engine off.
+     */
+    public static final String K_DEEP_SHUFFLE = "deep_shuffle";
+
     public static final String EDGE_TOP = "top";
     public static final String EDGE_BOTTOM = "bottom";
     public static final String DEFAULT_PKG = "com.maxmpz.audioplayer";
@@ -224,6 +231,15 @@ public final class Prefs {
 
     public static void setPanelShuffle(Context c, boolean value) {
         sp(c).edit().putBoolean(K_PANEL_SHUFFLE, value).apply();
+    }
+
+    /** True: a folder's shuffle covers its sub-folders too. False: only its own songs. */
+    public static boolean deepShuffle(Context c) {
+        return sp(c).getBoolean(K_DEEP_SHUFFLE, true);
+    }
+
+    public static void setDeepShuffle(Context c, boolean value) {
+        sp(c).edit().putBoolean(K_DEEP_SHUFFLE, value).apply();
     }
 
     public static boolean showStatus(Context c) {

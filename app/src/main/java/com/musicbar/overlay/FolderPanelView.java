@@ -40,6 +40,7 @@ public class FolderPanelView extends LinearLayout {
     private final TextView parentButton;
     private final TextView folderButton;
     private final TextView modeButton;
+    private final TextView deepButton;
     private final TextView pathView;
     private final LinearLayout grid;
     private final int rowHeightPx;
@@ -52,6 +53,8 @@ public class FolderPanelView extends LinearLayout {
     private void refreshMode() {
         modeButton.setText(Prefs.panelShuffle(getContext())
                 ? R.string.panel_shuffle_on : R.string.panel_shuffle_off);
+        deepButton.setText(Prefs.deepShuffle(getContext())
+                ? R.string.panel_deep_on : R.string.panel_deep_off);
     }
 
     public FolderPanelView(Context ctx, Callback callback) {
@@ -121,6 +124,23 @@ public class FolderPanelView extends LinearLayout {
                 LayoutParams.WRAP_CONTENT);
         modeParams.leftMargin = dp(6);
         header.addView(modeButton, modeParams);
+
+        // Whether that shuffling reaches into the sub-folders: the difference between "this
+        // folder" and "everything under it", which a leftover setting used to decide silently.
+        deepButton = new TextView(ctx);
+        deepButton.setTextSize(13f);
+        deepButton.setTextColor(0xFFFFFFFF);
+        deepButton.setPadding(dp(8), dp(6), dp(8), dp(6));
+        deepButton.setBackgroundResource(R.drawable.bg_btn);
+        deepButton.setContentDescription(ctx.getString(R.string.deep_hint));
+        deepButton.setOnClickListener(v -> {
+            Prefs.setDeepShuffle(getContext(), !Prefs.deepShuffle(getContext()));
+            refreshMode();
+        });
+        LayoutParams deepParams = new LayoutParams(LayoutParams.WRAP_CONTENT,
+                LayoutParams.WRAP_CONTENT);
+        deepParams.leftMargin = dp(6);
+        header.addView(deepButton, deepParams);
         refreshMode();
 
         pathView = new TextView(ctx);

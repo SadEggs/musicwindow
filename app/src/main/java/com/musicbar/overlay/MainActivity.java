@@ -152,8 +152,7 @@ public class MainActivity extends Activity {
         addNote(R.string.lang_hint);
         addCheckBox(R.string.set_show_status, Prefs.K_SHOW_STATUS, true);
         addNote(R.string.status_hint);
-        addCheckBox(R.string.set_tree_play, Prefs.K_TREE_PLAY, true);
-        addNote(R.string.tree_play_hint);
+        addNote(R.string.deep_hint);
         addButton(R.string.btn_check_playlist, v -> checkPlaylist());
 
         // ---- advanced ---------------------------------------------------------
